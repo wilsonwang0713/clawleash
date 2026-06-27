@@ -1,0 +1,40 @@
+# clawleash
+
+> clawleash is an open-source CLI that lets you approve or deny Claude Code
+> permission prompts from your phone, so long autonomous runs never stall while
+> you're away from the desk. It is self-hosted and token-gated, reaching your
+> Mac over Tailscale or the same Wi-Fi — no cloud relay, no account.
+
+## What it does
+
+- Approve/deny Claude Code permission prompts (Bash, Write, Edit, …) from a phone web page.
+- See live agent status (which sessions are running, which subagents).
+- Optional push notifications via ntfy when a prompt needs you.
+
+## How it works
+
+- Installs Claude Code hooks into `~/.claude/settings.json` with one command.
+- A tiny local Node server holds the `PermissionRequest` hook open until you
+  answer on your phone (or it times out and falls back to the terminal prompt).
+- The phone opens a token-gated, installable PWA served on your machine; it
+  reaches the Mac over Tailscale (anywhere) or the same Wi-Fi (at home).
+
+## Quick start
+
+```
+npx clawleash
+```
+Then scan the printed URL on your phone and Add to Home Screen.
+
+## Key facts
+
+- License: Apache-2.0. Self-hosted. No cloud, no subscription required.
+- Security: off-by-default remote approvals, secret token (`?k=`), 403 without it,
+  hook ingress is loopback-only, headless sessions auto-deny, no-response falls
+  back to the desktop terminal prompt.
+- Not affiliated with Anthropic; a community companion for Claude Code.
+
+## Links
+
+- Repo: https://github.com/wilsonwang0713/clawleash
+- README: https://github.com/wilsonwang0713/clawleash#readme

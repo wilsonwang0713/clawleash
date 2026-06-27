@@ -1,0 +1,46 @@
+{
+  "name": "clawleash",
+  "version": "0.1.0",
+  "description": "Approve or deny Claude Code permission prompts from your phone — so long autonomous runs never stall while you're away from the desk. Self-hosted, token-gated, over Tailscale or LAN.",
+  "keywords": [
+    "claude-code",
+    "claude",
+    "remote-approval",
+    "permission",
+    "hooks",
+    "tailscale",
+    "ntfy",
+    "pwa",
+    "human-in-the-loop",
+    "devtools",
+    "ai-agent",
+    "mobile"
+  ],
+  "homepage": "https://github.com/wilsonwang0713/clawleash#readme",
+  "bugs": "https://github.com/wilsonwang0713/clawleash/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wilsonwang0713/clawleash.git"
+  },
+  "license": "Apache-2.0",
+  "author": "",
+  "type": "commonjs",
+  "bin": {
+    "clawleash": "bin/clawleash.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "skill/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node bin/clawleash.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}

@@ -5,6 +5,7 @@ const os = require("os");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { sanitizeNtfyTopic } = require("./notify");
 
 const DEFAULT_PORT = 4271;
 
@@ -41,6 +42,8 @@ function ensure() {
   if (!cfg.port) { cfg.port = Number(process.env.CLAWLEASH_PORT) || DEFAULT_PORT; changed = true; }
   if (typeof cfg.approvals !== "boolean") { cfg.approvals = true; changed = true; }
   if (typeof cfg.ntfyTopic !== "string") { cfg.ntfyTopic = ""; changed = true; }
+  const cleanTopic = sanitizeNtfyTopic(cfg.ntfyTopic);
+  if (cleanTopic !== cfg.ntfyTopic) { cfg.ntfyTopic = cleanTopic; changed = true; }
   if (changed) save(cfg);
   return cfg;
 }

@@ -3,8 +3,19 @@
 // The user installs the ntfy app and subscribes to their topic; we POST to it.
 const https = require("https");
 
+// ntfy topics must be URL-safe ([-_A-Za-z0-9]{1,64}). Clean anything else so a
+// topic with spaces/punctuation doesn't silently fail to deliver.
+function sanitizeNtfyTopic(value) {
+  return String(value == null ? "" : value)
+    .replace(/[^A-Za-z0-9_-]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^[-_]+|[-_]+$/g, "")
+    .slice(0, 64);
+}
+
 function pushNtfy(topic, title, message, opts = {}) {
-  if (!topic || typeof topic !== "string") return;
+  const t = sanitizeNtfyTopic(topic);
+  if (!t) return;
   try {
     const body = Buffer.from(String(message == null ? "" : message), "utf8");
     // Title header must be ASCII; keep details in the (UTF-8) body.
@@ -17,7 +28,7 @@ function pushNtfy(topic, title, message, opts = {}) {
     if (opts.tags) headers.Tags = String(opts.tags);
     if (opts.priority) headers.Priority = String(opts.priority);
     const req = https.request(
-      { hostname: "ntfy.sh", path: "/" + encodeURIComponent(topic), method: "POST", headers, timeout: 4000 },
+      { hostname: "ntfy.sh", path: "/" + t, method: "POST", headers, timeout: 4000 },
       (res) => { res.resume(); }
     );
     req.on("error", () => {});
@@ -27,4 +38,4 @@ function pushNtfy(topic, title, message, opts = {}) {
   } catch { /* best-effort */ }
 }
 
-module.exports = { pushNtfy };
+module.exports = { pushNtfy, sanitizeNtfyTopic };

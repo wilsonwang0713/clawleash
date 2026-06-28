@@ -1,6 +1,6 @@
 {
   "name": "clawleash",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Approve or deny Claude Code permission prompts from your phone — so long autonomous runs never stall while you're away from the desk. Self-hosted, token-gated, over Tailscale or LAN.",
   "keywords": [
     "claude-code",

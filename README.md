@@ -64,6 +64,8 @@ The `PermissionRequest` hook **blocks** while clawleash holds the HTTP request o
 
 **Push notifications (optional):** set an [ntfy](https://ntfy.sh) topic and subscribe to it in the ntfy app to get pinged the moment a prompt needs you.
 
+📖 **Step-by-step:** see **[docs/SETUP.md](docs/SETUP.md)** for the full Tailscale and ntfy walkthrough (with the same-tailnet gotcha) and troubleshooting.
+
 ## clawleash vs the alternatives
 
 | | **clawleash** | ntfy-only hook | Anthropic Remote Control | clawd-on-desk |

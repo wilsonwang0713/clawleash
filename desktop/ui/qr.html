@@ -6,16 +6,14 @@
   <title>clawleash</title>
   <link rel="stylesheet" href="toast.css" />
   <style>
+    html, body { height: 100%; }
     .qr-card {
       position: relative;
-      margin: 10px;
-      padding: 15px 16px 17px;
-      border-radius: 24px;
-      overflow: hidden;
+      min-height: 100vh;
+      padding: 16px;
+      border-radius: 22px;
       color: var(--fg);
       background: #ffffff;
-      border: 1px solid rgba(0, 0, 0, 0.07);
-      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.12);
     }
     .qr-card > * { position: relative; z-index: 1; }
     .qr-head { display: flex; align-items: center; gap: 8px; }

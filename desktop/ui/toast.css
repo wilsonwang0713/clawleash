@@ -15,6 +15,7 @@
 html, body {
   margin: 0;
   padding: 0;
+  height: 100%;
   background: transparent;
   overflow: hidden;
   user-select: none;
@@ -22,22 +23,19 @@ html, body {
   cursor: default;
 }
 
+/* The card fills the whole (rounded, transparent) window so the only thing on
+   screen is solid white — no margin, no backing panel, no vibrancy tint. The
+   window's native rounding + shadow frame it. */
 .card {
   position: relative;
-  margin: 10px;
+  min-height: 100vh;
   display: flex;
   gap: 13px;
-  padding: 15px;
+  padding: 16px;
   border-radius: 22px;
-  overflow: hidden;
   color: #1b1b1f;
-  /* Clean, solid white — no gradient/vibrancy tint. */
   background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.07);
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.28),
-    0 2px 6px rgba(0, 0, 0, 0.12);
-  animation: pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
+  animation: pop 200ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
 .card > * { position: relative; z-index: 1; }
 

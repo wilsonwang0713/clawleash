@@ -14,7 +14,7 @@ function manifestFor(token) {
     // Bake the token in: the Home Screen launch uses start_url, NOT the URL you
     // added — without it the launched PWA would hit a tokenless URL and 403.
     start_url: "/?k=" + encodeURIComponent(token || ""),
-    icons: [{ src: "/icon.png", sizes: "512x512", type: "image/png", purpose: "any" }],
+    icons: [{ src: "/icon.png", sizes: "1254x1254", type: "image/png", purpose: "any" }],
   });
 }
 

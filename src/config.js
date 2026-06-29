@@ -44,6 +44,10 @@ function ensure() {
   if (typeof cfg.ntfyTopic !== "string") { cfg.ntfyTopic = ""; changed = true; }
   const cleanTopic = sanitizeNtfyTopic(cfg.ntfyTopic);
   if (cleanTopic !== cfg.ntfyTopic) { cfg.ntfyTopic = cleanTopic; changed = true; }
+  // Optional ntfy access token (e.g. "tk_…") + server. With a token the push
+  // channel is access-controlled instead of secret-by-obscurity.
+  if (typeof cfg.ntfyToken !== "string") { cfg.ntfyToken = ""; changed = true; }
+  if (typeof cfg.ntfyServer !== "string" || !cfg.ntfyServer) { cfg.ntfyServer = "ntfy.sh"; changed = true; }
   if (changed) save(cfg);
   return cfg;
 }

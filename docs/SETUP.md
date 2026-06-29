@@ -59,13 +59,16 @@ Free for personal use.
 Get a push the moment a permission prompt needs you, via the free, open-source
 [ntfy](https://ntfy.sh).
 
-1. **Pick a topic** and set it in clawleash's config
-   (`~/.config/clawleash/config.json`):
+1. **Pick a topic** and set it in clawleash's config (Linux:
+   `~/.config/clawleash/config.json`, macOS:
+   `~/Library/Application Support/clawleash/config.json`):
    ```json
    { "ntfyTopic": "your-unique-topic" }
    ```
    Use **letters, numbers, `-`, `_` only** (no spaces or punctuation), and make
-   it **hard to guess** — ntfy topics are public. Restart clawleash after editing.
+   it **hard to guess** — on the public `ntfy.sh` a topic is the *only* secret,
+   so anyone who learns it can read your prompts (and spam you). Restart
+   clawleash after editing.
 2. **Install the ntfy app** on your phone (App Store / Google Play — search
    `ntfy`).
 3. Open it and **allow notifications** when prompted.
@@ -73,6 +76,30 @@ Get a push the moment a permission prompt needs you, via the free, open-source
    **Server** as the default **`ntfy.sh`** → **Subscribe**.
 
 You'll now get a banner whenever a prompt is waiting for you.
+
+### Hardening (optional) — access token / self-hosted server
+
+A topic on the public `ntfy.sh` is protected only by being hard to guess. To make
+the channel **access-controlled** instead, add an ntfy **access token** (and,
+if you run your own ntfy, a custom server):
+
+```json
+{
+  "ntfyTopic": "your-unique-topic",
+  "ntfyToken": "tk_xxxxxxxxxxxxxxxxxxxx",
+  "ntfyServer": "ntfy.sh"
+}
+```
+
+- `ntfyToken` — sent as `Authorization: Bearer <token>`. Create one in the ntfy
+  app/web (**Account → Access tokens**) or via `ntfy token add`. On a server with
+  access control, reading and publishing the topic then require the token.
+- `ntfyServer` — hostname of a self-hosted ntfy (defaults to `ntfy.sh`). A scheme
+  and path are accepted and trimmed (`https://ntfy.example.com/` → `ntfy.example.com`).
+- Subscribe on the phone with the **same token** (the ntfy app stores it per
+  server under **Settings → Manage users / Default server**). Restart clawleash
+  after editing. `npx clawleash url`-style status shows `(auth)` next to the topic
+  when a token is set.
 
 ## Troubleshooting
 

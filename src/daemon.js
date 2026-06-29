@@ -69,7 +69,7 @@ function startDaemon({ getConfig, onLog } = {}) {
         { tool, input, sessionId, project: "" },
         PERMISSION_TIMEOUT_MS,
         (pend) => {
-          if (c.ntfyTopic) pushNtfy(c.ntfyTopic, "Permission needed", `${pend.tool}: ${pend.summary}`, { priority: "high", tags: "warning" });
+          if (c.ntfyTopic) pushNtfy(c.ntfyTopic, "Permission needed", `${pend.tool}: ${pend.summary}`, { priority: "high", tags: "warning", token: c.ntfyToken, server: c.ntfyServer });
           if (onLog) onLog(`permission pending — ${pend.tool} (${pend.id})`);
         }
       );

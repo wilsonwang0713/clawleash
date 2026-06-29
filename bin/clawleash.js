@@ -47,7 +47,8 @@ function main() {
     const c = config.load();
     console.log(`\n🦀 clawleash running on 0.0.0.0:${cfg.port}\n`);
     printUrls(cfg);
-    console.log(`\n   Approvals: ${c.approvals ? "ON" : "off"}   |   ntfy push: ${c.ntfyTopic || "(not set)"}`);
+    const ntfyStatus = c.ntfyTopic ? `${c.ntfyTopic}${c.ntfyToken ? " (auth)" : ""}` : "(not set)";
+    console.log(`\n   Approvals: ${c.approvals ? "ON" : "off"}   |   ntfy push: ${ntfyStatus}`);
     console.log("   Scan the URL on your phone and Add to Home Screen.");
     console.log("   Ctrl-C to stop  ·  `npx clawleash uninstall` to remove hooks.\n");
   });

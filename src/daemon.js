@@ -8,6 +8,7 @@ const { renderPage, manifestFor } = require("./mobile");
 const { createRegistry } = require("./permissions");
 const { createStatus } = require("./status");
 const { pushNtfy } = require("./notify");
+const { phoneUrls } = require("./netinfo");
 const fs = require("fs");
 const path = require("path");
 
@@ -112,6 +113,15 @@ function startDaemon({ getConfig, onLog } = {}) {
       snap.pending = registry.list();
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
       res.end(JSON.stringify(snap));
+      return;
+    }
+    // Phone links (Tailscale-first) — lets the desktop app copy a link to hand
+    // off to the phone when leaving the computer.
+    if (p === "/api/urls") {
+      const c = cfg();
+      const urls = phoneUrls(c.port || 4271, token);
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      res.end(JSON.stringify({ urls }));
       return;
     }
     if (p === "/api/permission" && req.method === "POST") {

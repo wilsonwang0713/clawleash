@@ -1,0 +1,28 @@
+[package]
+name = "clawleash-desktop"
+version = "0.1.0"
+description = "clawleash desktop companion"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "clawleash_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# ureq is a small *synchronous* HTTP client — no async runtime, so it can't clash
+# with Tauri's tokio runtime the way reqwest::blocking does.
+ureq = "2"
+dirs = "5"
+arboard = "3"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true

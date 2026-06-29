@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>clawleash</title>
+  <link rel="stylesheet" href="toast.css" />
+</head>
+<body>
+  <!-- A single Apple-style toast card. Populated + shown/hidden by toast.js. -->
+  <div id="card" class="card" hidden>
+    <img id="icon" class="icon" src="icon.png" alt="" />
+    <div class="body">
+      <div class="row">
+        <span class="title">Permission needed</span>
+        <span id="more" class="more" hidden></span>
+      </div>
+      <div id="tool" class="tool"></div>
+      <div id="summary" class="summary"></div>
+      <div class="actions">
+        <button id="deny" class="btn deny" type="button">Deny</button>
+        <button id="allow" class="btn allow" type="button">Allow</button>
+      </div>
+    </div>
+  </div>
+  <script src="toast.js"></script>
+</body>
+</html>

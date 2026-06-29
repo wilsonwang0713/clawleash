@@ -8,6 +8,17 @@ const { renderPage, manifestFor } = require("./mobile");
 const { createRegistry } = require("./permissions");
 const { createStatus } = require("./status");
 const { pushNtfy } = require("./notify");
+const fs = require("fs");
+const path = require("path");
+
+// The home-screen / favicon image, served publicly (not sensitive).
+const ICON_PATH = path.join(__dirname, "..", "assets", "icon.png");
+let _iconBuf = null;
+function readIcon() {
+  if (_iconBuf) return _iconBuf;
+  try { _iconBuf = fs.readFileSync(ICON_PATH); } catch { _iconBuf = Buffer.alloc(0); }
+  return _iconBuf;
+}
 
 // Settle a held permission well before Claude Code's 600s hook timeout so we
 // can cleanly fall back to the terminal prompt if nobody answers.
@@ -73,6 +84,13 @@ function startDaemon({ getConfig, onLog } = {}) {
           },
         },
       }));
+      return;
+    }
+
+    // ── Public app icon (no token) — apple-touch-icon / favicon / manifest icon ──
+    if (p === "/icon.png") {
+      res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" });
+      res.end(readIcon());
       return;
     }
 

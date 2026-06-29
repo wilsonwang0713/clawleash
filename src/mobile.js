@@ -3,8 +3,6 @@
 // renders pending allow/deny permission cards + live session bubbles. Tapping a
 // button POSTs to /api/permission.
 
-const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%A6%80%3C/text%3E%3C/svg%3E";
-
 function manifestFor(token) {
   return JSON.stringify({
     name: "clawleash",
@@ -16,7 +14,7 @@ function manifestFor(token) {
     // Bake the token in: the Home Screen launch uses start_url, NOT the URL you
     // added — without it the launched PWA would hit a tokenless URL and 403.
     start_url: "/?k=" + encodeURIComponent(token || ""),
-    icons: [{ src: FAVICON, sizes: "any", type: "image/svg+xml" }],
+    icons: [{ src: "/icon.png", sizes: "512x512", type: "image/png", purpose: "any" }],
   });
 }
 
@@ -24,8 +22,8 @@ function renderPage(token) {
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>clawleash</title>
-<link rel="icon" href="${FAVICON}">
-<link rel="apple-touch-icon" href="${FAVICON}">
+<link rel="icon" href="/icon.png">
+<link rel="apple-touch-icon" href="/icon.png">
 <link rel="manifest" href="/manifest.webmanifest?k=${encodeURIComponent(token || "")}">
 <meta name="theme-color" content="#1c1c1f">
 <meta name="apple-mobile-web-app-capable" content="yes">

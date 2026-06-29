@@ -31,6 +31,26 @@
           "state": "active",
           "radius": 20
         }
+      },
+      {
+        "label": "qr",
+        "url": "qr.html",
+        "title": "clawleash — phone link",
+        "width": 300,
+        "height": 392,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "visible": false,
+        "center": true,
+        "windowEffects": {
+          "effects": ["popover"],
+          "state": "active",
+          "radius": 22
+        }
       }
     ],
     "security": {

@@ -2,6 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capabilities for the toast window. Custom app commands aren't ACL-gated; this just enables the core webview defaults.",
-  "windows": ["toast"],
+  "windows": ["toast", "qr"],
   "permissions": ["core:default"]
 }

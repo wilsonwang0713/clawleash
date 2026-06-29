@@ -110,6 +110,21 @@ fn copy_phone_link() -> Result<String, String> {
     Ok(link)
 }
 
+// The phone link as a scannable QR (SVG) + the raw URL, for the QR window.
+#[tauri::command]
+fn phone_qr() -> Result<serde_json::Value, String> {
+    let link = phone_link()?;
+    let code = qrcode::QrCode::new(link.as_bytes()).map_err(|e| e.to_string())?;
+    let svg = code
+        .render::<qrcode::render::svg::Color>()
+        .min_dimensions(220, 220)
+        .quiet_zone(true)
+        .dark_color(qrcode::render::svg::Color("#0b0b0d"))
+        .light_color(qrcode::render::svg::Color("#ffffff"))
+        .build();
+    Ok(serde_json::json!({ "url": link, "svg": svg }))
+}
+
 // ── window placement ─────────────────────────────────────────────────────────
 
 fn position_bottom_right(win: &WebviewWindow) {
@@ -183,6 +198,22 @@ fn show_toast(win: &WebviewWindow) {
     configure_overlay(win); // level above Dock + all Spaces + over full-screen
 }
 
+#[tauri::command]
+fn hide_self(window: WebviewWindow) {
+    let _ = window.hide();
+}
+
+fn show_qr(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("qr") {
+        let _ = w.center();
+        let _ = w.show();
+        let _ = w.set_always_on_top(true);
+        configure_overlay(&w); // also reachable from a full-screen Space
+        let _ = w.set_focus();
+        let _ = w.emit("refresh-qr", ()); // re-fetch in case the IP changed
+    }
+}
+
 // ── app ──────────────────────────────────────────────────────────────────────
 
 pub fn run() {
@@ -190,7 +221,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_pending,
             resolve_permission,
-            copy_phone_link
+            copy_phone_link,
+            phone_qr,
+            hide_self
         ])
         .setup(|app| {
             // Menubar-only: no Dock icon.
@@ -199,6 +232,7 @@ pub fn run() {
 
             // Tray icon + menu.
             let menu = MenuBuilder::new(app)
+                .text("qr", "Show QR code")
                 .text("copy", "Copy phone link")
                 .text("show", "Show pending")
                 .separator()
@@ -217,6 +251,7 @@ pub fn run() {
                 .tooltip("clawleash")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id().as_ref() {
+                    "qr" => show_qr(app),
                     "copy" => {
                         let _ = copy_phone_link();
                     }

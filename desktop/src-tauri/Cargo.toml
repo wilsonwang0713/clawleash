@@ -22,6 +22,10 @@ ureq = "2"
 dirs = "5"
 arboard = "3"
 
+# Raise the toast's NSWindow level above the Dock (cross-platform Tauri can't).
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+
 [profile.release]
 opt-level = "s"
 lto = true

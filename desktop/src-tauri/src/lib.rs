@@ -124,7 +124,9 @@ fn position_bottom_right(win: &WebviewWindow) {
         let scale = m.scale_factor();
         if let Ok(wsize) = win.outer_size() {
             let margin = (16.0 * scale) as i32;
-            let dock = (12.0 * scale) as i32;
+            // Clear a standard bottom Dock so the card sits above it (and the
+            // raised window level keeps it on top even if the Dock is larger).
+            let dock = (96.0 * scale) as i32;
             let x = mpos.x + msize.width as i32 - wsize.width as i32 - margin;
             let y = mpos.y + msize.height as i32 - wsize.height as i32 - margin - dock;
             let _ = win.set_position(PhysicalPosition::new(x, y));
@@ -132,10 +134,53 @@ fn position_bottom_right(win: &WebviewWindow) {
     }
 }
 
+// Make the toast a true system overlay on macOS. Two things Tauri's
+// cross-platform API can't do:
+//   1. `always_on_top` only reaches NSFloatingWindowLevel (3), *below* the Dock
+//      (level 20) — so the Dock covers it. We raise the level above the Dock.
+//   2. `set_visible_on_all_workspaces` sets only canJoinAllSpaces, so the window
+//      shows on normal desktops but NOT over full-screen apps (which get their
+//      own Space). Adding fullScreenAuxiliary lets it float over full-screen
+//      apps too.
+#[cfg(target_os = "macos")]
+fn configure_overlay(win: &WebviewWindow) {
+    use objc2::msg_send;
+    use objc2::runtime::AnyObject;
+    if let Ok(ptr) = win.ns_window() {
+        let ns = ptr as *mut AnyObject;
+        if ns.is_null() {
+            return;
+        }
+        unsafe {
+            // CGAssistiveTechHighWindowLevel — floats above the Dock, menu bar,
+            // and full-screen apps (the level clawd-on-desk uses).
+            let level: isize = 1500;
+            let _: () = msg_send![ns, setLevel: level];
+            // CanJoinAllSpaces(1<<0) | Stationary(1<<4) | IgnoresCycle(1<<6)
+            //   | FullScreenAuxiliary(1<<8) | FullScreenDisallowsTiling(1<<12)
+            let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6) | (1 << 8) | (1 << 12);
+            let _: () = msg_send![ns, setCollectionBehavior: behavior];
+            // Don't let the overlay get hidden when the app deactivates or the
+            // user hides apps.
+            let no = false;
+            let _: () = msg_send![ns, setCanHide: no];
+            let _: () = msg_send![ns, setHidesOnDeactivate: no];
+            let anim: isize = 2; // NSWindowAnimationBehaviorNone
+            let _: () = msg_send![ns, setAnimationBehavior: anim];
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn configure_overlay(win: &WebviewWindow) {
+    let _ = win.set_visible_on_all_workspaces(true);
+}
+
 fn show_toast(win: &WebviewWindow) {
     position_bottom_right(win);
     let _ = win.show();
     let _ = win.set_always_on_top(true);
+    configure_overlay(win); // level above Dock + all Spaces + over full-screen
 }
 
 // ── app ──────────────────────────────────────────────────────────────────────
@@ -160,9 +205,15 @@ pub fn run() {
                 .text("quit", "Quit clawleash")
                 .build()?;
 
-            let _tray = TrayIconBuilder::with_id("clawleash")
-                .icon(app.default_window_icon().unwrap().clone())
-                .icon_as_template(false)
+            // Centered black + alpha crab silhouette used as a macOS *template*
+            // image — the menu bar tints it white on dark, black on light, like
+            // the native monochrome status items.
+            let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/trayTemplate@2x.png"))
+                .expect("valid tray PNG");
+
+            let tray_result = TrayIconBuilder::with_id("clawleash")
+                .icon(tray_icon)
+                .icon_as_template(true)
                 .tooltip("clawleash")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id().as_ref() {
@@ -177,7 +228,16 @@ pub fn run() {
                     "quit" => app.exit(0),
                     _ => {}
                 })
-                .build(app)?;
+                .build(app);
+
+            match tray_result {
+                // CRITICAL on macOS: the TrayIcon must outlive setup, else the
+                // status item is removed the moment this handle drops.
+                Ok(tray) => {
+                    app.manage(tray);
+                }
+                Err(e) => eprintln!("[clawleash] tray failed: {e}"),
+            }
 
             // Background poller: owns window show/hide so it works even while the
             // (hidden) webview's JS timers are suspended by macOS.

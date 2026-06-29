@@ -3,27 +3,12 @@
    refinements on top: a translucent fill, a specular top highlight, a hairline
    luminous border, a diagonal sheen, and layered depth shadows. */
 :root {
+  /* Card is always solid white, so text stays dark in light *and* dark mode. */
   --fg: #1b1b1f;
   --muted: #5f5f66;
   --allow: #0a84ff;
-  --deny-bg: rgba(120, 120, 128, 0.20);
-  --glass-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.18));
-  --glass-border: rgba(255, 255, 255, 0.65);
-  --glass-hi: rgba(255, 255, 255, 0.9);
-  --sheen: rgba(255, 255, 255, 0.5);
+  --deny-bg: rgba(120, 120, 128, 0.16);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fg: #f3f3f7;
-    --muted: #a6a6ad;
-    --deny-bg: rgba(120, 120, 128, 0.32);
-    --glass-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04));
-    --glass-border: rgba(255, 255, 255, 0.22);
-    --glass-hi: rgba(255, 255, 255, 0.35);
-    --sheen: rgba(255, 255, 255, 0.18);
-  }
 }
 
 * { box-sizing: border-box; }
@@ -45,26 +30,14 @@ html, body {
   padding: 15px;
   border-radius: 22px;
   overflow: hidden;
-  color: var(--fg);
-  background: var(--glass-fill);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--glass-border);
+  color: #1b1b1f;
+  /* Clean, solid white — no gradient/vibrancy tint. */
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
   box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.30),
-    0 2px 6px rgba(0, 0, 0, 0.14),
-    inset 0 1px 0 var(--glass-hi),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.10);
+    0 18px 44px rgba(0, 0, 0, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.12);
   animation: pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
-}
-
-/* Diagonal liquid sheen sweeping the top-left. */
-.card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--sheen) 0%, rgba(255, 255, 255, 0.06) 36%, rgba(255, 255, 255, 0) 58%);
-  pointer-events: none;
 }
 .card > * { position: relative; z-index: 1; }
 

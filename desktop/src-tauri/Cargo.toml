@@ -23,9 +23,11 @@ dirs = "5"
 arboard = "3"
 qrcode = "0.14"
 
-# Raise the toast's NSWindow level above the Dock (cross-platform Tauri can't).
+# macOS-only: raise NSWindow level / collection behavior (objc2) and load the
+# private SkyLight framework at runtime (libloading) to overlay full-screen apps.
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
+libloading = "0.8"
 
 [profile.release]
 opt-level = "s"

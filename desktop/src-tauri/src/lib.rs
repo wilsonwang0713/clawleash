@@ -157,32 +157,119 @@ fn position_bottom_right(win: &WebviewWindow) {
 //      shows on normal desktops but NOT over full-screen apps (which get their
 //      own Space). Adding fullScreenAuxiliary lets it float over full-screen
 //      apps too.
+// Private SkyLight (WindowServer) API — the only reliable way to float a window
+// over *other apps'* full-screen Spaces. We create one absolute-level system
+// Space and move the overlay window into it (mirrors clawd-on-desk's approach).
+// SkyLight is a private framework that lives only in the dyld shared cache on
+// modern macOS, so we resolve it at runtime instead of linking against it.
+#[cfg(target_os = "macos")]
+mod sky {
+    use std::ffi::c_void;
+    use std::os::raw::c_int;
+    use std::sync::OnceLock;
+
+    type FnConn = unsafe extern "C" fn() -> c_int;
+    type FnCreate = unsafe extern "C" fn(c_int, c_int, c_int) -> c_int;
+    type FnSetLevel = unsafe extern "C" fn(c_int, c_int, c_int) -> c_int;
+    type FnShow = unsafe extern "C" fn(c_int, *const c_void) -> c_int;
+    type FnAddRemove = unsafe extern "C" fn(c_int, c_int, *const c_void, c_int) -> c_int;
+
+    pub struct Sky {
+        pub main_conn: FnConn,
+        pub space_create: FnCreate,
+        pub set_abs_level: FnSetLevel,
+        pub show_spaces: FnShow,
+        pub add_remove: FnAddRemove,
+    }
+
+    static SKY: OnceLock<Option<Sky>> = OnceLock::new();
+
+    pub fn get() -> Option<&'static Sky> {
+        SKY.get_or_init(|| unsafe {
+            let lib = libloading::Library::new(
+                "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/SkyLight",
+            )
+            .ok()?;
+            let lib: &'static libloading::Library = Box::leak(Box::new(lib));
+            Some(Sky {
+                main_conn: *lib.get::<FnConn>(b"SLSMainConnectionID\0").ok()?,
+                space_create: *lib.get::<FnCreate>(b"SLSSpaceCreate\0").ok()?,
+                set_abs_level: *lib.get::<FnSetLevel>(b"SLSSpaceSetAbsoluteLevel\0").ok()?,
+                show_spaces: *lib.get::<FnShow>(b"SLSShowSpaces\0").ok()?,
+                add_remove: *lib.get::<FnAddRemove>(b"SLSSpaceAddWindowsAndRemoveFromSpaces\0").ok()?,
+            })
+        })
+        .as_ref()
+    }
+}
+
+#[cfg(target_os = "macos")]
+static SKY_SPACE: std::sync::OnceLock<std::os::raw::c_int> = std::sync::OnceLock::new();
+
+// Build an NSArray containing one NSNumber(int). NSArray* is toll-free bridged
+// to CFArrayRef, which is what the SLS functions expect.
+#[cfg(target_os = "macos")]
+unsafe fn ns_int_array(v: std::os::raw::c_int) -> *mut objc2::runtime::AnyObject {
+    use objc2::msg_send;
+    let num: *mut objc2::runtime::AnyObject = msg_send![objc2::class!(NSNumber), numberWithInt: v];
+    let arr: *mut objc2::runtime::AnyObject = msg_send![objc2::class!(NSArray), arrayWithObject: num];
+    arr
+}
+
+#[cfg(target_os = "macos")]
+fn delegate_to_stationary_space(ns: *mut objc2::runtime::AnyObject) {
+    use objc2::msg_send;
+    let Some(s) = sky::get() else { return };
+    unsafe {
+        let cid = (s.main_conn)();
+        let space = *SKY_SPACE.get_or_init(|| {
+            let sp = (s.space_create)(cid, 1, 0);
+            (s.set_abs_level)(cid, sp, 100);
+            (s.show_spaces)(cid, ns_int_array(sp) as *const std::ffi::c_void);
+            sp
+        });
+        let wn: isize = msg_send![ns, windowNumber];
+        if wn != 0 {
+            (s.add_remove)(
+                cid,
+                space,
+                ns_int_array(wn as std::os::raw::c_int) as *const std::ffi::c_void,
+                7,
+            );
+        }
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn configure_overlay(win: &WebviewWindow) {
     use objc2::msg_send;
     use objc2::runtime::AnyObject;
-    if let Ok(ptr) = win.ns_window() {
-        let ns = ptr as *mut AnyObject;
-        if ns.is_null() {
-            return;
+    match win.ns_window() {
+        Ok(ptr) => {
+            let ns = ptr as *mut AnyObject;
+            if ns.is_null() {
+                eprintln!("[clawleash] configure_overlay: ns_window is null");
+                return;
+            }
+            unsafe {
+                // CGAssistiveTechHighWindowLevel — floats above the Dock, menu
+                // bar, and full-screen apps (the level clawd-on-desk uses).
+                let level: isize = 1500;
+                let _: () = msg_send![ns, setLevel: level];
+                // CanJoinAllSpaces(1<<0) | Stationary(1<<4) | IgnoresCycle(1<<6)
+                //   | FullScreenAuxiliary(1<<8) | FullScreenDisallowsTiling(1<<12)
+                let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6) | (1 << 8) | (1 << 12);
+                let _: () = msg_send![ns, setCollectionBehavior: behavior];
+                let no = false;
+                let _: () = msg_send![ns, setCanHide: no];
+                let _: () = msg_send![ns, setHidesOnDeactivate: no];
+                let anim: isize = 2; // NSWindowAnimationBehaviorNone
+                let _: () = msg_send![ns, setAnimationBehavior: anim];
+            }
+            // The decisive bit for other apps' full-screen Spaces.
+            delegate_to_stationary_space(ns);
         }
-        unsafe {
-            // CGAssistiveTechHighWindowLevel — floats above the Dock, menu bar,
-            // and full-screen apps (the level clawd-on-desk uses).
-            let level: isize = 1500;
-            let _: () = msg_send![ns, setLevel: level];
-            // CanJoinAllSpaces(1<<0) | Stationary(1<<4) | IgnoresCycle(1<<6)
-            //   | FullScreenAuxiliary(1<<8) | FullScreenDisallowsTiling(1<<12)
-            let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6) | (1 << 8) | (1 << 12);
-            let _: () = msg_send![ns, setCollectionBehavior: behavior];
-            // Don't let the overlay get hidden when the app deactivates or the
-            // user hides apps.
-            let no = false;
-            let _: () = msg_send![ns, setCanHide: no];
-            let _: () = msg_send![ns, setHidesOnDeactivate: no];
-            let anim: isize = 2; // NSWindowAnimationBehaviorNone
-            let _: () = msg_send![ns, setAnimationBehavior: anim];
-        }
+        Err(e) => eprintln!("[clawleash] configure_overlay: ns_window err: {e}"),
     }
 }
 
@@ -286,19 +373,25 @@ pub fn run() {
                     // Keep the card's text fresh whether or not it's visible.
                     let _ = handle.emit_to("toast", "pending", pending.clone());
 
-                    if want != shown {
-                        shown = want;
-                        let h2 = handle.clone();
-                        let _ = handle.run_on_main_thread(move || {
-                            if let Some(w) = h2.get_webview_window("toast") {
-                                if want {
-                                    show_toast(&w);
-                                } else {
-                                    let _ = w.hide();
+                    let first = want && !shown;
+                    let should_hide = !want && shown;
+                    shown = want;
+                    let h2 = handle.clone();
+                    let _ = handle.run_on_main_thread(move || {
+                        if let Some(w) = h2.get_webview_window("toast") {
+                            if want {
+                                if first {
+                                    position_bottom_right(&w);
+                                    let _ = w.show();
                                 }
+                                // Re-assert every tick — Tauri otherwise resets
+                                // the level back below the Dock / off full-screen.
+                                configure_overlay(&w);
+                            } else if should_hide {
+                                let _ = w.hide();
                             }
-                        });
-                    }
+                        }
+                    });
 
                     std::thread::sleep(Duration::from_millis(700));
                 }

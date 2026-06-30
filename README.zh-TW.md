@@ -64,7 +64,9 @@ Claude Code (CLI)
 | 同一個 Wi‑Fi(在家/辦公室) | LAN 網址(`192.168.x…`) | 免設定,馬上可用 |
 | 在外面 | Tailscale 網址(`100.x…`) | 在 Mac **和**手機裝 [Tailscale](https://tailscale.com),同帳號、同 tailnet |
 
-**推播通知(選配):** 設定一個 [ntfy](https://ntfy.sh) topic,並在 ntfy app 訂閱它,就能在提問需要你時立刻收到通知。
+**推播通知(選配):** 在提問需要你時立刻收到通知。
+- **[ntfy](https://ntfy.sh)** — 設定 `ntfyTopic`,在 ntfy app 訂閱它。
+- **[Bark](https://bark.day.app)**(iPhone 上推薦,因 ntfy 在 iOS 推播常不穩)— 裝 Bark,把裝置 key 填進 `barkKey`。通知會顯示 clawleash 螃蟹圖示。
 
 📖 **逐步教學:** 完整的 Tailscale 與 ntfy 操作(含同 tailnet 的雷)與疑難排解,見 **[docs/SETUP.md](docs/SETUP.md)**。
 
@@ -90,6 +92,7 @@ Claude Code (CLI)
 | `port` | `4271` | daemon 連接埠(`CLAWLEASH_PORT` 環境變數可覆蓋) |
 | `approvals` | `true` | 把權限提問鏡射到手機 |
 | `ntfyTopic` | `""` | ntfy 推播 topic(空 = 關閉) |
+| `barkKey` | `""` | [Bark](https://bark.day.app) iOS 裝置 key,用於推播(空 = 關閉) |
 
 ## 安全性與威脅模型
 

@@ -64,7 +64,9 @@ Claude Code (CLI)
 | 同じ Wi‑Fi(自宅・オフィス) | LAN の URL(`192.168.x…`) | 不要・すぐ使える |
 | 外出先 | Tailscale の URL(`100.x…`) | Mac **と**スマホに [Tailscale](https://tailscale.com) を入れ、同一アカウント・同一 tailnet |
 
-**プッシュ通知(任意):** [ntfy](https://ntfy.sh) のトピックを設定し、ntfy アプリで購読すると、プロンプトが必要になった瞬間に通知が届きます。
+**プッシュ通知(任意):** プロンプトが必要になった瞬間に通知が届きます。
+- **[ntfy](https://ntfy.sh)** — `ntfyTopic` を設定し、ntfy アプリで購読。
+- **[Bark](https://bark.day.app)**(iPhone 推奨。iOS では ntfy のプッシュが不安定なことがあるため)— Bark をインストールし、デバイスキーを `barkKey` に設定。通知に clawleash のカニアイコンが表示されます。
 
 📖 **手順詳細:** Tailscale と ntfy の完全な手順(同一 tailnet の落とし穴あり)とトラブルシューティングは **[docs/SETUP.md](docs/SETUP.md)** を参照。
 
@@ -90,6 +92,7 @@ Claude Code (CLI)
 | `port` | `4271` | デーモンのポート(`CLAWLEASH_PORT` 環境変数で上書き可) |
 | `approvals` | `true` | 権限プロンプトをスマホへミラー |
 | `ntfyTopic` | `""` | プッシュ用 ntfy トピック(空 = 無効) |
+| `barkKey` | `""` | [Bark](https://bark.day.app) iOS デバイスキー(空 = 無効) |
 
 ## セキュリティと脅威モデル
 

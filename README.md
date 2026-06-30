@@ -64,7 +64,9 @@ The `PermissionRequest` hook **blocks** while clawleash holds the HTTP request o
 | Same Wi‑Fi (at home/office) | the LAN URL (`192.168.x…`) | none — works immediately |
 | Out and about | the Tailscale URL (`100.x…`) | install [Tailscale](https://tailscale.com) on your Mac **and** phone, same account, same tailnet |
 
-**Push notifications (optional):** set an [ntfy](https://ntfy.sh) topic and subscribe to it in the ntfy app to get pinged the moment a prompt needs you.
+**Push notifications (optional):** get pinged the moment a prompt needs you.
+- **[ntfy](https://ntfy.sh)** — set `ntfyTopic` and subscribe to it in the ntfy app.
+- **[Bark](https://bark.day.app)** (recommended on iPhone, where ntfy push can be unreliable) — install Bark, copy your device key into `barkKey`. Notifications show the clawleash crab icon.
 
 📖 **Step-by-step:** see **[docs/SETUP.md](docs/SETUP.md)** for the full Tailscale and ntfy walkthrough (with the same-tailnet gotcha) and troubleshooting.
 
@@ -90,6 +92,7 @@ Config lives in `~/.config/clawleash/config.json` (or the OS equivalent):
 | `port` | `4271` | daemon port (`CLAWLEASH_PORT` env overrides) |
 | `approvals` | `true` | mirror permission prompts to the phone |
 | `ntfyTopic` | `""` | ntfy topic for push (empty = off) |
+| `barkKey` | `""` | [Bark](https://bark.day.app) iOS device key for push (empty = off) |
 
 ## Security & threat model
 

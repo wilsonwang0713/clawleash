@@ -101,6 +101,24 @@ if you run your own ntfy, a custom server):
   after editing. `npx clawleash url`-style status shows `(auth)` next to the topic
   when a token is set.
 
+## 4. Push notifications (optional) — Bark (recommended on iPhone)
+
+On iOS, ntfy push can be unreliable (messages arrive in the app, but no banner).
+[Bark](https://bark.day.app) is a dedicated iOS push app that's far more reliable.
+
+1. **Install Bark** from the App Store and **allow notifications**.
+2. Bark's home screen shows your personal URL — copy the **device key** from it
+   (`https://api.day.app/<DEVICE_KEY>/`).
+3. Set it in clawleash's config:
+   ```json
+   { "barkKey": "<DEVICE_KEY>" }
+   ```
+   Restart clawleash. Notifications show the clawleash crab icon.
+4. (Optional) `barkServer` for a self-hosted Bark (default `api.day.app`), and
+   `barkIcon` for a custom **public** icon URL (Bark's server fetches it; iOS 15+).
+
+You can enable ntfy and Bark at the same time — both fire when a prompt is waiting.
+
 ## Troubleshooting
 
 | Symptom | Fix |

@@ -98,6 +98,7 @@ function buildBarkRequest(key, title, message, opts = {}) {
   };
   if (opts.sound) payload.sound = String(opts.sound);
   if (opts.icon) payload.icon = String(opts.icon); // Bark custom icon (iOS 15+)
+  if (opts.url) payload.url = String(opts.url);    // tapping the push opens this
   const body = Buffer.from(JSON.stringify(payload), "utf8");
   return {
     options: {

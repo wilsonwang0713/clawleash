@@ -71,7 +71,13 @@ function startDaemon({ getConfig, onLog } = {}) {
         PERMISSION_TIMEOUT_MS,
         (pend) => {
           if (c.ntfyTopic) pushNtfy(c.ntfyTopic, "Permission needed", `${pend.tool}: ${pend.summary}`, { priority: "high", tags: "warning", token: c.ntfyToken, server: c.ntfyServer });
-          if (c.barkKey) pushBark(c.barkKey, "Permission needed", `${pend.tool}: ${pend.summary}`, { level: "timeSensitive", server: c.barkServer, icon: c.barkIcon });
+          if (c.barkKey) {
+            // Tapping the Bark push opens the phone page (Tailscale-first) so you
+            // can Allow/Deny there — Bark can't carry the buttons itself.
+            const urls = phoneUrls(c.port || 4271, c.token || "");
+            const phoneUrl = ((urls.find((u) => u.tailscale) || urls[0]) || {}).url;
+            pushBark(c.barkKey, "Permission needed", `${pend.tool}: ${pend.summary}`, { level: "timeSensitive", server: c.barkServer, icon: c.barkIcon, url: phoneUrl });
+          }
           if (onLog) onLog(`permission pending — ${pend.tool} (${pend.id})`);
         }
       );

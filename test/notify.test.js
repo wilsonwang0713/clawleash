@@ -72,6 +72,7 @@ test("buildBarkRequest returns null without a device key", () => {
 test("buildBarkRequest posts a JSON body (title/body/icon) to /<key>", () => {
   const spec = buildBarkRequest("KEY123", "Permission needed", "Bash: rm -rf", {
     icon: "https://example.com/crab.png",
+    url: "http://100.64.0.1:4271/?k=abc",
   });
   assert.equal(spec.options.hostname, "api.day.app");
   assert.equal(spec.options.path, "/KEY123");
@@ -81,6 +82,7 @@ test("buildBarkRequest posts a JSON body (title/body/icon) to /<key>", () => {
   assert.equal(j.title, "Permission needed");
   assert.equal(j.body, "Bash: rm -rf");
   assert.equal(j.icon, "https://example.com/crab.png");
+  assert.equal(j.url, "http://100.64.0.1:4271/?k=abc");
   assert.equal(j.group, "clawleash");
 });
 

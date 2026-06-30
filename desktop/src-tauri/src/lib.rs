@@ -82,6 +82,21 @@ fn resolve_permission(id: String, decision: String) -> Result<(), String> {
     Ok(())
 }
 
+// Pick a permission suggestion (e.g. "always allow …") by its index.
+#[tauri::command]
+fn pick_suggestion(id: String, index: u32) -> Result<(), String> {
+    let (token, port) = token_port();
+    let url = format!(
+        "http://127.0.0.1:{}/api/permission?k={}&id={}&s={}",
+        port, token, id, index
+    );
+    ureq::post(&url)
+        .timeout(Duration::from_secs(3))
+        .call()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 fn phone_link() -> Result<String, String> {
     let (token, port) = token_port();
     if token.is_empty() {
@@ -285,6 +300,16 @@ fn show_toast(win: &WebviewWindow) {
     configure_overlay(win); // level above Dock + all Spaces + over full-screen
 }
 
+// Resize the toast to the rendered card height so the window hugs its content
+// (the frontend measures and calls this).
+#[tauri::command]
+fn fit_toast(window: WebviewWindow, height: f64) {
+    let h = height.clamp(80.0, 460.0);
+    let _ = window.set_size(tauri::LogicalSize::new(340.0, h));
+    position_bottom_right(&window);
+    configure_overlay(&window);
+}
+
 #[tauri::command]
 fn hide_self(window: WebviewWindow) {
     let _ = window.hide();
@@ -308,6 +333,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_pending,
             resolve_permission,
+            pick_suggestion,
+            fit_toast,
             copy_phone_link,
             phone_qr,
             hide_self

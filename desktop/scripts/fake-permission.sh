@@ -6,10 +6,12 @@
 #   ./fake-permission.sh                       # Bash: rm -rf build/
 #   ./fake-permission.sh Bash "npm publish"    # custom Bash command
 #   ./fake-permission.sh Write src/app.ts      # a Write request
+#   ./fake-permission.sh Bash "npm test" sug   # include permission_suggestions
 set -euo pipefail
 PORT="${CLAWLEASH_PORT:-4271}"
 TOOL="${1:-Bash}"
 ARG="${2:-rm -rf build/}"
+SUG="${3:-}"
 
 if [ "$TOOL" = "Bash" ]; then
   INPUT="{\"command\":\"$ARG\"}"
@@ -17,10 +19,16 @@ else
   INPUT="{\"file_path\":\"$ARG\"}"
 fi
 
+# Optional: attach sample permission_suggestions to exercise the multi-option UI.
+SUGGESTIONS=""
+if [ -n "$SUG" ]; then
+  SUGGESTIONS=",\"permission_suggestions\":[{\"type\":\"addRules\",\"behavior\":\"allow\",\"destination\":\"localSettings\",\"rules\":[{\"toolName\":\"$TOOL\",\"ruleContent\":\"$ARG\"}]},{\"type\":\"addRules\",\"behavior\":\"allow\",\"destination\":\"localSettings\",\"rules\":[{\"toolName\":\"$TOOL\"}]}]"
+fi
+
 echo "→ injecting $TOOL permission (Allow/Deny on the toast or phone)…"
 RESP="$(curl -s -X POST "http://127.0.0.1:$PORT/hook/permission" \
   -H 'Content-Type: application/json' \
-  -d "{\"tool_name\":\"$TOOL\",\"tool_input\":$INPUT,\"session_id\":\"faketest\"}" || true)"
+  -d "{\"tool_name\":\"$TOOL\",\"tool_input\":$INPUT,\"session_id\":\"faketest\"$SUGGESTIONS}" || true)"
 
 if [ -z "$RESP" ]; then
   echo "← no decision (timed out, or approvals are off)"

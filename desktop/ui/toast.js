@@ -1,6 +1,7 @@
 "use strict";
 // Toast controller. Rust polls the daemon and pushes a "pending" event; it also
-// owns showing/hiding + bottom-right placement. This renders the front request.
+// owns showing/hiding + bottom-right placement. This renders the front request,
+// resizes the window to fit, and resolves via Allow/Deny or a one-tap suggestion.
 
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
@@ -10,15 +11,25 @@ const el = {
   eyebrow: document.getElementById("eyebrow"),
   main: document.getElementById("main"),
   more: document.getElementById("more"),
+  suggestions: document.getElementById("suggestions"),
   allow: document.getElementById("allow"),
   deny: document.getElementById("deny"),
 };
 
 // Heuristic: does this look destructive / irreversible?
-const DANGER = /\b(rm\s+-[rf]+|rm\s+-[rf]+\s|sudo\b|mkfs|dd\s+if=|chmod\s+-R|chown\s+-R|--force|force-push|push\s+-f\b|reset\s+--hard|DROP\s+(TABLE|DATABASE)|DELETE\s+FROM|TRUNCATE|:\(\)\s*\{)/i;
+const DANGER = /(?:\brm\s+-[rf]+|\bsudo\b|\bmkfs|\bdd\s+if=|chmod\s+-R|chown\s+-R|--force\b|force-push|push\s+-f\b|reset\s+--hard|\bDROP\s+(?:TABLE|DATABASE)|\bDELETE\s+FROM|\bTRUNCATE|:\(\)\s*\{)/i;
 
 let current = null; // id currently shown
 let busy = false;   // a resolve is in flight
+let lastH = 0;      // last height we asked the window to be
+
+function fit() {
+  const h = Math.ceil(el.card.getBoundingClientRect().height);
+  if (h > 0 && Math.abs(h - lastH) > 1) {
+    lastH = h;
+    invoke("fit_toast", { height: h }).catch(() => {});
+  }
+}
 
 function render(pending) {
   const list = Array.isArray(pending) ? pending : [];
@@ -48,27 +59,59 @@ function render(pending) {
   } else {
     el.more.hidden = true;
   }
+
+  // One-tap suggestions ("always allow …").
+  const sug = Array.isArray(top.suggestions) ? top.suggestions : [];
+  if (sug.length) {
+    el.suggestions.innerHTML = "";
+    for (const s of sug) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = s.label;
+      b.addEventListener("click", () => pick(s.i));
+      el.suggestions.appendChild(b);
+    }
+    el.suggestions.hidden = false;
+  } else {
+    el.suggestions.hidden = true;
+    el.suggestions.innerHTML = "";
+  }
+
   if (!busy) {
     el.allow.disabled = false;
     el.deny.disabled = false;
   }
   el.card.hidden = false;
+  // Resize the window to the rendered card height (after layout settles).
+  requestAnimationFrame(fit);
+}
+
+function lock() {
+  busy = true;
+  el.allow.disabled = true;
+  el.deny.disabled = true;
+}
+function unlock() {
+  busy = false;
+  current = null; // don't double-tap before the next event
 }
 
 async function decide(decision) {
   if (!current || busy) return;
-  busy = true;
-  el.allow.disabled = true;
-  el.deny.disabled = true;
   const id = current;
-  try {
-    await invoke("resolve_permission", { id, decision });
-  } catch {
-    /* best-effort; next event reflects reality */
-  } finally {
-    busy = false;
-    current = null; // don't double-tap before the next event
-  }
+  lock();
+  try { await invoke("resolve_permission", { id, decision }); }
+  catch { /* next event reflects reality */ }
+  finally { unlock(); }
+}
+
+async function pick(index) {
+  if (!current || busy) return;
+  const id = current;
+  lock();
+  try { await invoke("pick_suggestion", { id, index }); }
+  catch { /* next event reflects reality */ }
+  finally { unlock(); }
 }
 
 el.allow.addEventListener("click", () => decide("allow"));

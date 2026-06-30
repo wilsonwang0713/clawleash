@@ -11,6 +11,7 @@ const { pushNtfy, pushBark } = require("./notify");
 const { phoneUrls } = require("./netinfo");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 
 // The home-screen / favicon image, served publicly (not sensitive).
 const ICON_PATH = path.join(__dirname, "..", "assets", "icon.png");
@@ -66,8 +67,12 @@ function startDaemon({ getConfig, onLog } = {}) {
       const tool = typeof body.tool_name === "string" ? body.tool_name : "Tool";
       const input = body.tool_input && typeof body.tool_input === "object" ? body.tool_input : {};
       const sessionId = body.session_id || "default";
+      const suggestions = Array.isArray(body.permission_suggestions) ? body.permission_suggestions : [];
+      // Debug: keep the last real permission payload so we can confirm the
+      // permission_suggestions shape (overwritten each time; harmless).
+      try { fs.writeFileSync(path.join(os.tmpdir(), "clawleash-last-perm.json"), JSON.stringify(body, null, 2)); } catch { /* ignore */ }
       const decision = await registry.request(
-        { tool, input, sessionId, project: "" },
+        { tool, input, sessionId, project: "", suggestions },
         PERMISSION_TIMEOUT_MS,
         (pend) => {
           if (c.ntfyTopic) pushNtfy(c.ntfyTopic, "Permission needed", `${pend.tool}: ${pend.summary}`, { priority: "high", tags: "warning", token: c.ntfyToken, server: c.ntfyServer });
@@ -89,6 +94,7 @@ function startDaemon({ getConfig, onLog } = {}) {
           decision: {
             behavior: decision.decision === "allow" ? "allow" : "deny",
             ...(decision.message ? { message: decision.message } : {}),
+            ...(decision.updatedPermissions ? { updatedPermissions: decision.updatedPermissions } : {}),
           },
         },
       }));
@@ -133,8 +139,14 @@ function startDaemon({ getConfig, onLog } = {}) {
     }
     if (p === "/api/permission" && req.method === "POST") {
       const id = url.searchParams.get("id") || "";
-      const behavior = url.searchParams.get("decision") === "allow" ? "allow" : "deny";
-      const ok = registry.resolve(id, behavior);
+      const s = url.searchParams.get("s"); // optional suggestion index
+      let choice;
+      if (s !== null && s !== "" && Number.isInteger(Number(s))) {
+        choice = { suggestion: Number(s) };
+      } else {
+        choice = url.searchParams.get("decision") === "allow" ? "allow" : "deny";
+      }
+      const ok = registry.resolve(id, choice);
       res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok }));
       return;
     }

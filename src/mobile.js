@@ -52,6 +52,9 @@ header{padding:18px 16px 6px}h1{font-size:18px;margin:0}#sub{font-size:12px;colo
 .psum{font-size:14px;margin:5px 0 11px;word-break:break-word;font-family:ui-monospace,Menlo,monospace}
 .pbtns{display:flex;gap:8px}.pbtns button{flex:1;border:0;border-radius:10px;padding:12px;font-size:15px;font-weight:600;color:#fff}
 .allow{background:var(--ok)}.deny{background:var(--bad)}.pbtns button:active{opacity:.65}
+.psug{display:flex;flex-direction:column;gap:6px;margin-bottom:9px}
+.psug button{border:1px solid var(--acc);background:transparent;color:var(--acc);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;text-align:left;width:100%}
+.psug button:active{opacity:.6}
 </style></head><body>
 <header><h1>🦀 clawleash</h1><p id="sub">connecting…</p></header>
 <div id="perms"></div>
@@ -61,10 +64,15 @@ header{padding:18px 16px 6px}h1{font-size:18px;margin:0}#sub{font-size:12px;colo
 <script>
 var K=${JSON.stringify(token || "")};
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML}
-function decide(id,d){fetch('/api/permission?k='+encodeURIComponent(K)+'&id='+encodeURIComponent(id)+'&decision='+d,{method:'POST'}).then(function(){tick()}).catch(function(){});}
-document.getElementById('perms').addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button[data-id]');if(!b)return;b.disabled=true;decide(b.getAttribute('data-id'),b.getAttribute('data-d'));});
+function post(id,qs){fetch('/api/permission?k='+encodeURIComponent(K)+'&id='+encodeURIComponent(id)+'&'+qs,{method:'POST'}).then(function(){tick()}).catch(function(){});}
+document.getElementById('perms').addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button[data-id]');if(!b)return;b.disabled=true;
+ var s=b.getAttribute('data-s');
+ if(s!==null){post(b.getAttribute('data-id'),'s='+encodeURIComponent(s));}
+ else{post(b.getAttribute('data-id'),'decision='+b.getAttribute('data-d'));}});
 function renderPerms(list){var el=document.getElementById('perms');if(!list||!list.length){el.innerHTML='';return}
- el.innerHTML=list.map(function(p){return '<div class="card perm"><div class="ptool">'+esc(p.tool)+(p.project?' · '+esc(p.project):'')+'</div><div class="psum">'+esc(p.summary)+'</div><div class="pbtns"><button class="allow" data-id="'+esc(p.id)+'" data-d="allow">Allow</button><button class="deny" data-id="'+esc(p.id)+'" data-d="deny">Deny</button></div></div>';}).join('');}
+ el.innerHTML=list.map(function(p){
+  var sug=(p.suggestions||[]).map(function(s){return '<button data-id="'+esc(p.id)+'" data-s="'+s.i+'">'+esc(s.label)+'</button>';}).join('');
+  return '<div class="card perm"><div class="ptool">'+esc(p.tool)+(p.project?' · '+esc(p.project):'')+'</div><div class="psum">'+esc(p.summary)+'</div>'+(sug?'<div class="psug">'+sug+'</div>':'')+'<div class="pbtns"><button class="allow" data-id="'+esc(p.id)+'" data-d="allow">Allow</button><button class="deny" data-id="'+esc(p.id)+'" data-d="deny">Deny</button></div></div>';}).join('');}
 function renderSessions(list){var el=document.getElementById('sessions');if(!list||!list.length){el.innerHTML='<div class="none">no live sessions</div>';return}
  el.innerHTML=list.map(function(s){var st=s.state||'idle';var sub=(s.agents&&s.agents.length)?s.agents.join(', '):st;
   return '<div class="bub"><div class="crab">🦀</div><div class="say"><div class="ttl">'+esc(s.project||'session')+'<span class="st s-'+esc(st)+'">'+esc(st)+'</span></div><div class="subl">'+esc(sub)+'</div></div></div>';}).join('');}

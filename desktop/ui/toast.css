@@ -103,9 +103,14 @@ html, body {
   color: var(--allow);
   border-radius: var(--radius);
   padding: 7px 10px;
-  font: inherit; font-size: 12px; font-weight: 600;
+  font: inherit; font-size: 12px; font-weight: 600; line-height: 1.3;
   cursor: pointer;
   transition: background 110ms ease;
+  /* long rule strings (e.g. NODE_PATH=…/node_modules) must wrap inside the
+     pill, never spill past the right edge — break-word + 2-line clamp. */
+  overflow-wrap: anywhere; word-break: break-word;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .suggestions button:hover { background: color-mix(in srgb, var(--allow) 12%, transparent); }
 .card.danger .suggestions button {

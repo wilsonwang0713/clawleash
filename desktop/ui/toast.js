@@ -1,19 +1,21 @@
 "use strict";
-// Toast controller. The Rust side polls the clawleash daemon and pushes a
-// "pending" event with the current pending list; it also owns showing/hiding
-// the window. This script only renders the front request and resolves it.
+// Toast controller. Rust polls the daemon and pushes a "pending" event; it also
+// owns showing/hiding + bottom-right placement. This renders the front request.
 
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
 const el = {
   card: document.getElementById("card"),
-  tool: document.getElementById("tool"),
-  summary: document.getElementById("summary"),
+  eyebrow: document.getElementById("eyebrow"),
+  main: document.getElementById("main"),
   more: document.getElementById("more"),
   allow: document.getElementById("allow"),
   deny: document.getElementById("deny"),
 };
+
+// Heuristic: does this look destructive / irreversible?
+const DANGER = /\b(rm\s+-[rf]+|rm\s+-[rf]+\s|sudo\b|mkfs|dd\s+if=|chmod\s+-R|chown\s+-R|--force|force-push|push\s+-f\b|reset\s+--hard|DROP\s+(TABLE|DATABASE)|DELETE\s+FROM|TRUNCATE|:\(\)\s*\{)/i;
 
 let current = null; // id currently shown
 let busy = false;   // a resolve is in flight
@@ -27,10 +29,21 @@ function render(pending) {
   }
   const top = list[0];
   current = top.id;
-  el.tool.textContent = top.tool || "Tool";
-  el.summary.textContent = top.summary || "";
+
+  const tool = top.tool || "Tool";
+  let detail = top.summary || tool;
+  // Avoid showing the tool name twice ("Write Glass.swift" → "Glass.swift").
+  if (detail.toLowerCase().startsWith(tool.toLowerCase() + " ")) {
+    detail = detail.slice(tool.length + 1);
+  }
+
+  const danger = DANGER.test(`${tool} ${top.summary || ""}`);
+  el.card.classList.toggle("danger", danger);
+  el.eyebrow.textContent = danger ? `⚠ DESTRUCTIVE · ${tool}` : `${tool} · clawleash`;
+  el.main.textContent = detail;
+
   if (list.length > 1) {
-    el.more.textContent = `+${list.length - 1} more`;
+    el.more.textContent = `+${list.length - 1}`;
     el.more.hidden = false;
   } else {
     el.more.hidden = true;
@@ -51,12 +64,10 @@ async function decide(decision) {
   try {
     await invoke("resolve_permission", { id, decision });
   } catch {
-    /* best-effort; the next poll reflects reality */
+    /* best-effort; next event reflects reality */
   } finally {
     busy = false;
-    // Optimistically clear so we don't double-tap the same request before the
-    // next "pending" event arrives.
-    current = null;
+    current = null; // don't double-tap before the next event
   }
 }
 
@@ -64,6 +75,4 @@ el.allow.addEventListener("click", () => decide("allow"));
 el.deny.addEventListener("click", () => decide("deny"));
 
 listen("pending", (e) => render(e.payload));
-
-// Paint immediately on launch in case something is already pending.
 invoke("get_pending").then(render).catch(() => {});

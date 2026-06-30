@@ -15,7 +15,7 @@
         "url": "index.html",
         "title": "clawleash",
         "width": 340,
-        "height": 150,
+        "height": 126,
         "minWidth": 340,
         "minHeight": 90,
         "resizable": false,
@@ -25,7 +25,8 @@
         "skipTaskbar": true,
         "shadow": true,
         "visible": false,
-        "focus": false
+        "focus": false,
+        "windowEffects": { "effects": ["popover"], "state": "active", "radius": 22 }
       },
       {
         "label": "qr",
@@ -40,7 +41,8 @@
         "skipTaskbar": true,
         "shadow": true,
         "visible": false,
-        "center": true
+        "center": true,
+        "windowEffects": { "effects": ["popover"], "state": "active", "radius": 22 }
       }
     ],
     "security": {

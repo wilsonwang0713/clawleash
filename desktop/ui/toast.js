@@ -21,22 +21,25 @@ const DANGER = /(?:\brm\s+-[rf]+|\bsudo\b|\bmkfs|\bdd\s+if=|chmod\s+-R|chown\s+-
 
 let current = null; // id currently shown
 let busy = false;   // a resolve is in flight
+let lastH = 0;      // last height we asked the window to be
 
-// Always re-fit on render. The set_size it triggers also forces the (release)
-// webview to repaint transparent — without it, a non-resized toast can render an
-// opaque square instead of the rounded card.
 function fit() {
   const h = Math.ceil(el.card.getBoundingClientRect().height);
-  if (h > 0) {
+  if (h > 0 && Math.abs(h - lastH) > 1) {
+    lastH = h;
     invoke("fit_toast", { height: h }).catch(() => {});
   }
 }
+
+// Force a fit (and thus re-round) the next time the toast is shown.
+function resetFit() { lastH = 0; }
 
 function render(pending) {
   const list = Array.isArray(pending) ? pending : [];
   if (list.length === 0) {
     current = null;
     el.card.hidden = true;
+    resetFit(); // next show re-fits → re-rounds
     return;
   }
   const top = list[0];

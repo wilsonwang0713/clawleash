@@ -255,6 +255,24 @@ fn delegate_to_stationary_space(ns: *mut objc2::runtime::AnyObject) {
     }
 }
 
+// Re-apply the vibrancy/rounding effect at runtime. The config windowEffects
+// alone don't round in release builds; calling set_effects after show/resize
+// does. Kept out of the per-tick path to avoid flicker.
+#[cfg(target_os = "macos")]
+fn apply_rounding(win: &WebviewWindow) {
+    use tauri::window::{Effect, EffectState, EffectsBuilder};
+    let _ = win.set_effects(
+        EffectsBuilder::new()
+            .effect(Effect::Popover)
+            .state(EffectState::Active)
+            .radius(22.0)
+            .build(),
+    );
+}
+
+#[cfg(not(target_os = "macos"))]
+fn apply_rounding(_win: &WebviewWindow) {}
+
 #[cfg(target_os = "macos")]
 fn configure_overlay(win: &WebviewWindow) {
     use objc2::msg_send;
@@ -297,6 +315,7 @@ fn show_toast(win: &WebviewWindow) {
     position_bottom_right(win);
     let _ = win.show();
     let _ = win.set_always_on_top(true);
+    apply_rounding(win); // runtime set_effects — config alone doesn't round in release
     configure_overlay(win); // level above Dock + all Spaces + over full-screen
 }
 
@@ -306,6 +325,7 @@ fn show_toast(win: &WebviewWindow) {
 fn fit_toast(window: WebviewWindow, height: f64) {
     let h = height.clamp(80.0, 460.0);
     let _ = window.set_size(tauri::LogicalSize::new(340.0, h));
+    apply_rounding(&window); // re-round at the new size (else square corners)
     position_bottom_right(&window);
     configure_overlay(&window);
 }

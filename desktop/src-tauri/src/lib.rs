@@ -265,7 +265,7 @@ fn apply_rounding(win: &WebviewWindow) {
         EffectsBuilder::new()
             .effect(Effect::Popover)
             .state(EffectState::Active)
-            .radius(22.0)
+            .radius(10.0)
             .build(),
     );
 }

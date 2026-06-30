@@ -1,146 +1,142 @@
-/* clawleash permission toast — clean solid-white card that fills the rounded,
-   transparent window (no margin → no backing panel/tint). Compact hierarchy:
-   small eyebrow, a prominent action line, then Deny/Allow. */
+/* clawleash permission toast — "Crisp" card. Small radius + hairline border so
+   the occasional square corner (a wry release quirk) is barely perceptible; the
+   polish comes from typography, spacing, and restraint. */
 :root {
-  --fg: #1b1b1f;
-  --muted: #6b6b73;
+  --ink: #16161a;
+  --ink-2: #5b5b64;
+  --ink-3: #8a8a93;
+  --line: rgba(0, 0, 0, 0.09);
+  --field: #f1f1f4;
   --allow: #0a84ff;
-  --allow-2: #2a95ff;
+  --allow-2: #2f9bff;
   --danger: #ff3b30;
-  --danger-2: #ff5e57;
-  --deny-bg: #ececef;
+  --danger-2: #ff5b52;
+  --radius: 9px;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 * { box-sizing: border-box; }
 html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
+  margin: 0; padding: 0; height: 100%;
   background: transparent;
   overflow: hidden;
-  user-select: none;
-  -webkit-user-select: none;
+  user-select: none; -webkit-user-select: none;
   cursor: default;
 }
 
 .card {
   position: relative;
   display: flex;
-  gap: 13px;
-  padding: 15px 16px;
-  border-radius: 22px;
-  color: var(--fg);
+  gap: 12px;
+  padding: 14px 15px;
+  border-radius: 10px;
   background: #ffffff;
-  animation: pop 200ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
-}
-/* The card is content-height; toast.js resizes the window to match it, so the
-   rounded white card fills the rounded (transparent) window — no square frame. */
-
-/* One-tap permission suggestions ("always allow …"), above Deny/Allow. */
-.suggestions { display: flex; flex-direction: column; gap: 6px; margin-top: 11px; }
-.suggestions button {
-  width: 100%;
-  border: 1px solid rgba(10, 132, 255, 0.5);
-  background: rgba(10, 132, 255, 0.08);
-  color: var(--allow);
-  border-radius: 9px;
-  padding: 8px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.suggestions button:active { transform: scale(0.98); }
-.card.danger .suggestions button {
-  border-color: rgba(255, 59, 48, 0.5);
-  background: rgba(255, 59, 48, 0.08);
-  color: var(--danger);
+  border: 0.5px solid var(--line);
+  color: var(--ink);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.24),
+    0 1px 2px rgba(0, 0, 0, 0.10);
+  animation: pop 180ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
 }
 
-/* Danger: a rounded accent rail on the left edge. */
+/* Danger: a slim accent rail hugging the left edge. */
 .card.danger::before {
   content: "";
   position: absolute;
-  left: 0; top: 14px; bottom: 14px;
-  width: 4px;
-  border-radius: 0 4px 4px 0;
+  left: 0; top: 13px; bottom: 13px;
+  width: 3px;
+  border-radius: 3px;
   background: var(--danger);
 }
 
 @keyframes pop {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ── crab ── */
 .icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 11px;
+  width: 42px; height: 42px;
   flex: none;
+  border-radius: 10px;
   object-fit: cover;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10), inset 0 0 0 0.5px rgba(0, 0, 0, 0.05);
 }
 
 .body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-.eyebrow { display: flex; align-items: center; gap: 7px; }
+/* ── eyebrow ── */
+.eyebrow { display: flex; align-items: center; gap: 7px; min-height: 13px; }
 .eyebrow-text {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  color: var(--muted);
-  text-transform: uppercase;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.7px;
+  text-transform: uppercase; color: var(--ink-3);
 }
 .card.danger .eyebrow-text { color: var(--danger); }
 .more {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--muted);
-  background: rgba(120, 120, 128, 0.14);
-  border-radius: 9px;
-  padding: 1px 7px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px;
+  color: var(--ink-3);
+  background: var(--field);
+  border-radius: 6px;
+  padding: 1px 6px;
 }
 
+/* ── main line (the action / command) ── */
 .main {
   margin-top: 3px;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--fg);
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13.5px; font-weight: 600; line-height: 1.32;
+  color: var(--ink);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  letter-spacing: -0.1px;
   word-break: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.actions { margin-top: auto; padding-top: 13px; display: flex; gap: 8px; }
-.btn {
-  flex: 1;
-  height: 32px;
-  border: 0;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
+/* ── one-tap suggestions ── */
+.suggestions { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+.suggestions button {
+  width: 100%; text-align: left;
+  border: 0.5px solid color-mix(in srgb, var(--allow) 45%, transparent);
+  background: color-mix(in srgb, var(--allow) 7%, transparent);
+  color: var(--allow);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  font: inherit; font-size: 12px; font-weight: 600;
   cursor: pointer;
-  transition: filter 120ms ease, transform 60ms ease;
+  transition: background 110ms ease;
 }
-.btn:active { transform: scale(0.97); }
+.suggestions button:hover { background: color-mix(in srgb, var(--allow) 12%, transparent); }
+.card.danger .suggestions button {
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+  color: var(--danger);
+}
+
+/* ── actions ── */
+.actions { margin-top: 12px; display: flex; gap: 7px; }
+.btn {
+  flex: 1; height: 30px;
+  border: 0; border-radius: var(--radius);
+  font: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: filter 110ms ease, transform 60ms ease;
+}
+.btn:active { transform: scale(0.975); }
+.btn.deny {
+  background: var(--field); color: var(--ink);
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+}
+.btn.deny:hover { filter: brightness(0.97); }
 .btn.allow {
   background: linear-gradient(180deg, var(--allow-2), var(--allow));
   color: #fff;
-  box-shadow: 0 1px 2px rgba(10, 132, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: 0 1px 2px rgba(10, 132, 255, 0.40), inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
 }
 .card.danger .btn.allow {
   background: linear-gradient(180deg, var(--danger-2), var(--danger));
-  box-shadow: 0 1px 2px rgba(255, 59, 48, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 2px rgba(255, 59, 48, 0.40), inset 0 0.5px 0 rgba(255, 255, 255, 0.35);
 }
-.btn.allow:hover { filter: brightness(1.06); }
-.btn.deny { background: var(--deny-bg); color: var(--fg); }
-.btn.deny:hover { filter: brightness(0.97); }
+.btn.allow:hover { filter: brightness(1.05); }
 .btn:disabled { opacity: 0.5; cursor: default; }

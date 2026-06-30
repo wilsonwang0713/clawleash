@@ -34,6 +34,8 @@
     "skill/",
     "assets/",
     "README.md",
+    "README.zh-TW.md",
+    "README.ja.md",
     "LICENSE"
   ],
   "scripts": {

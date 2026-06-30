@@ -1,3 +1,5 @@
+<p align="right"><strong>English</strong> · <a href="./README.zh-TW.md">繁體中文</a> · <a href="./README.ja.md">日本語</a></p>
+
 # 🦀 clawleash — approve Claude Code from your phone
 
 [![npm](https://img.shields.io/npm/v/clawleash.svg)](https://www.npmjs.com/package/clawleash)

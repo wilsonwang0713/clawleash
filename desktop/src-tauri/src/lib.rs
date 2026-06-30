@@ -280,6 +280,21 @@ fn configure_overlay(win: &WebviewWindow) {
                 let _: () = msg_send![ns, setHidesOnDeactivate: no];
                 let anim: isize = 2; // NSWindowAnimationBehaviorNone
                 let _: () = msg_send![ns, setAnimationBehavior: anim];
+
+                // Deterministic rounded corners: round the content view's layer.
+                // The vibrancy mask can go square after a resize; this is
+                // re-applied every poll tick so it always survives.
+                let content: *mut AnyObject = msg_send![ns, contentView];
+                if !content.is_null() {
+                    let yes = true;
+                    let _: () = msg_send![content, setWantsLayer: yes];
+                    let layer: *mut AnyObject = msg_send![content, layer];
+                    if !layer.is_null() {
+                        let radius: f64 = 22.0;
+                        let _: () = msg_send![layer, setCornerRadius: radius];
+                        let _: () = msg_send![layer, setMasksToBounds: yes];
+                    }
+                }
             }
             // The decisive bit for other apps' full-screen Spaces.
             delegate_to_stationary_space(ns);

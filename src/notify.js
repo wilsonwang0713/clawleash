@@ -72,4 +72,61 @@ function pushNtfy(topic, title, message, opts = {}) {
   } catch { /* best-effort */ }
 }
 
-module.exports = { pushNtfy, sanitizeNtfyTopic, normalizeNtfyServer, buildNtfyRequest };
+// ── Bark (iOS) ──────────────────────────────────────────────────────────────
+// Bark is a reliable iOS push app: POST a JSON body to https://<server>/<key>.
+// Default server is api.day.app (the hosted one); a self-hosted host works too.
+
+function normalizeBarkServer(value) {
+  const host = String(value == null ? "" : value)
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/.*$/, "")
+    .trim();
+  return host || "api.day.app";
+}
+
+// Pure: build the https.request options + body for a Bark push, or null if no
+// device key. Exported for unit testing without a network call.
+function buildBarkRequest(key, title, message, opts = {}) {
+  const k = String(key == null ? "" : key).trim();
+  if (!k) return null;
+  const payload = {
+    title: String(title || "clawleash"),
+    body: String(message == null ? "" : message),
+    group: "clawleash",
+    level: opts.level || "timeSensitive",
+  };
+  if (opts.sound) payload.sound = String(opts.sound);
+  if (opts.icon) payload.icon = String(opts.icon); // Bark custom icon (iOS 15+)
+  const body = Buffer.from(JSON.stringify(payload), "utf8");
+  return {
+    options: {
+      hostname: normalizeBarkServer(opts.server),
+      path: "/" + encodeURIComponent(k),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Length": body.length,
+      },
+      timeout: 4000,
+    },
+    body,
+  };
+}
+
+function pushBark(key, title, message, opts = {}) {
+  try {
+    const spec = buildBarkRequest(key, title, message, opts);
+    if (!spec) return;
+    const req = https.request(spec.options, (res) => { res.resume(); });
+    req.on("error", () => {});
+    req.on("timeout", () => { try { req.destroy(); } catch {} });
+    req.write(spec.body);
+    req.end();
+  } catch { /* best-effort */ }
+}
+
+module.exports = {
+  pushNtfy, sanitizeNtfyTopic, normalizeNtfyServer, buildNtfyRequest,
+  pushBark, normalizeBarkServer, buildBarkRequest,
+};

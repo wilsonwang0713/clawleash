@@ -7,7 +7,7 @@ const http = require("http");
 const { renderPage, manifestFor } = require("./mobile");
 const { createRegistry } = require("./permissions");
 const { createStatus } = require("./status");
-const { pushNtfy } = require("./notify");
+const { pushNtfy, pushBark } = require("./notify");
 const { phoneUrls } = require("./netinfo");
 const fs = require("fs");
 const path = require("path");
@@ -71,6 +71,7 @@ function startDaemon({ getConfig, onLog } = {}) {
         PERMISSION_TIMEOUT_MS,
         (pend) => {
           if (c.ntfyTopic) pushNtfy(c.ntfyTopic, "Permission needed", `${pend.tool}: ${pend.summary}`, { priority: "high", tags: "warning", token: c.ntfyToken, server: c.ntfyServer });
+          if (c.barkKey) pushBark(c.barkKey, "Permission needed", `${pend.tool}: ${pend.summary}`, { level: "timeSensitive", server: c.barkServer, icon: c.barkIcon });
           if (onLog) onLog(`permission pending — ${pend.tool} (${pend.id})`);
         }
       );

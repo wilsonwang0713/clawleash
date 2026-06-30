@@ -48,6 +48,14 @@ function ensure() {
   // channel is access-controlled instead of secret-by-obscurity.
   if (typeof cfg.ntfyToken !== "string") { cfg.ntfyToken = ""; changed = true; }
   if (typeof cfg.ntfyServer !== "string" || !cfg.ntfyServer) { cfg.ntfyServer = "ntfy.sh"; changed = true; }
+  // Optional Bark (iOS) push — reliable on iPhone where ntfy can be flaky.
+  if (typeof cfg.barkKey !== "string") { cfg.barkKey = ""; changed = true; }
+  if (typeof cfg.barkServer !== "string" || !cfg.barkServer) { cfg.barkServer = "api.day.app"; changed = true; }
+  // Notification icon (must be a public URL — Bark's server fetches it). iOS 15+.
+  if (typeof cfg.barkIcon !== "string") {
+    cfg.barkIcon = "https://raw.githubusercontent.com/wilsonwang0713/clawleash/main/desktop/src-tauri/icons/128x128.png";
+    changed = true;
+  }
   if (changed) save(cfg);
   return cfg;
 }

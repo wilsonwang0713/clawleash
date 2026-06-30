@@ -1,7 +1,10 @@
 "use strict";
 const { test } = require("node:test");
 const assert = require("node:assert");
-const { sanitizeNtfyTopic, normalizeNtfyServer, buildNtfyRequest } = require("../src/notify");
+const {
+  sanitizeNtfyTopic, normalizeNtfyServer, buildNtfyRequest,
+  normalizeBarkServer, buildBarkRequest,
+} = require("../src/notify");
 
 test("sanitizeNtfyTopic cleans to a URL-safe ntfy topic", () => {
   assert.equal(sanitizeNtfyTopic("wilson's clawd"), "wilson-s-clawd");
@@ -53,4 +56,37 @@ test("buildNtfyRequest strips non-ASCII from the Title but keeps the UTF-8 body"
   assert.match(spec.options.headers.Title, /needed/);
   assert.doesNotMatch(spec.options.headers.Title, /[^\x20-\x7E]/);
   assert.equal(spec.body.toString("utf8"), "中文內容");
+});
+
+test("normalizeBarkServer reduces to a hostname, defaulting to api.day.app", () => {
+  assert.equal(normalizeBarkServer(""), "api.day.app");
+  assert.equal(normalizeBarkServer("https://api.day.app/"), "api.day.app");
+  assert.equal(normalizeBarkServer("bark.example.com"), "bark.example.com");
+});
+
+test("buildBarkRequest returns null without a device key", () => {
+  assert.equal(buildBarkRequest("", "t", "m"), null);
+  assert.equal(buildBarkRequest("   ", "t", "m"), null);
+});
+
+test("buildBarkRequest posts a JSON body (title/body/icon) to /<key>", () => {
+  const spec = buildBarkRequest("KEY123", "Permission needed", "Bash: rm -rf", {
+    icon: "https://example.com/crab.png",
+  });
+  assert.equal(spec.options.hostname, "api.day.app");
+  assert.equal(spec.options.path, "/KEY123");
+  assert.equal(spec.options.method, "POST");
+  assert.match(spec.options.headers["Content-Type"], /application\/json/);
+  const j = JSON.parse(spec.body.toString("utf8"));
+  assert.equal(j.title, "Permission needed");
+  assert.equal(j.body, "Bash: rm -rf");
+  assert.equal(j.icon, "https://example.com/crab.png");
+  assert.equal(j.group, "clawleash");
+});
+
+test("buildBarkRequest keeps UTF-8 (Chinese + emoji) in the JSON body", () => {
+  const spec = buildBarkRequest("KEY", "權限請求", "寫入 Glass.swift 🦀");
+  const j = JSON.parse(spec.body.toString("utf8"));
+  assert.equal(j.title, "權限請求");
+  assert.equal(j.body, "寫入 Glass.swift 🦀");
 });

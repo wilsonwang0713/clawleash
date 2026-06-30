@@ -25,8 +25,7 @@
         "skipTaskbar": true,
         "shadow": true,
         "visible": false,
-        "focus": false,
-        "windowEffects": { "effects": ["popover"], "state": "active", "radius": 22 }
+        "focus": false
       },
       {
         "label": "qr",
@@ -41,8 +40,7 @@
         "skipTaskbar": true,
         "shadow": true,
         "visible": false,
-        "center": true,
-        "windowEffects": { "effects": ["popover"], "state": "active", "radius": 22 }
+        "center": true
       }
     ],
     "security": {

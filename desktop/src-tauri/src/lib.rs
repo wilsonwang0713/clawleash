@@ -280,21 +280,6 @@ fn configure_overlay(win: &WebviewWindow) {
                 let _: () = msg_send![ns, setHidesOnDeactivate: no];
                 let anim: isize = 2; // NSWindowAnimationBehaviorNone
                 let _: () = msg_send![ns, setAnimationBehavior: anim];
-
-                // Deterministic rounded corners: round the content view's layer.
-                // The vibrancy mask can go square after a resize; this is
-                // re-applied every poll tick so it always survives.
-                let content: *mut AnyObject = msg_send![ns, contentView];
-                if !content.is_null() {
-                    let yes = true;
-                    let _: () = msg_send![content, setWantsLayer: yes];
-                    let layer: *mut AnyObject = msg_send![content, layer];
-                    if !layer.is_null() {
-                        let radius: f64 = 22.0;
-                        let _: () = msg_send![layer, setCornerRadius: radius];
-                        let _: () = msg_send![layer, setMasksToBounds: yes];
-                    }
-                }
             }
             // The decisive bit for other apps' full-screen Spaces.
             delegate_to_stationary_space(ns);
@@ -321,16 +306,6 @@ fn show_toast(win: &WebviewWindow) {
 fn fit_toast(window: WebviewWindow, height: f64) {
     let h = height.clamp(80.0, 460.0);
     let _ = window.set_size(tauri::LogicalSize::new(340.0, h));
-    // Re-apply the vibrancy effect so its rounded-corner mask follows the new
-    // size (otherwise a resized window shows square corners).
-    use tauri::window::{Effect, EffectState, EffectsBuilder};
-    let _ = window.set_effects(
-        EffectsBuilder::new()
-            .effect(Effect::Popover)
-            .state(EffectState::Active)
-            .radius(22.0)
-            .build(),
-    );
     position_bottom_right(&window);
     configure_overlay(&window);
 }

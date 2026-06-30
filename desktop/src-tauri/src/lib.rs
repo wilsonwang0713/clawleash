@@ -306,6 +306,16 @@ fn show_toast(win: &WebviewWindow) {
 fn fit_toast(window: WebviewWindow, height: f64) {
     let h = height.clamp(80.0, 460.0);
     let _ = window.set_size(tauri::LogicalSize::new(340.0, h));
+    // Re-apply the vibrancy effect so its rounded-corner mask follows the new
+    // size (otherwise a resized window shows square corners).
+    use tauri::window::{Effect, EffectState, EffectsBuilder};
+    let _ = window.set_effects(
+        EffectsBuilder::new()
+            .effect(Effect::Popover)
+            .state(EffectState::Active)
+            .radius(22.0)
+            .build(),
+    );
     position_bottom_right(&window);
     configure_overlay(&window);
 }

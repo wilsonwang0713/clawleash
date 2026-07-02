@@ -23,6 +23,7 @@ const DANGER = /(?:\brm\s+-[rf]+|\bsudo\b|\bmkfs|\bdd\s+if=|chmod\s+-R|chown\s+-
 let current = null; // id currently shown
 let busy = false;   // a resolve is in flight
 let lastH = 0;      // last height we asked the window to be
+let lastKey = "";   // pending-set signature; skip re-render (and selection wipe) when unchanged
 let currentQuestions = []; // AskUserQuestion questions for the shown card (answerable only)
 
 function fit() {
@@ -43,10 +44,17 @@ function render(pending) {
   const list = Array.isArray(pending) ? pending : [];
   if (list.length === 0) {
     current = null;
+    lastKey = "";
     el.card.hidden = true;
     resetFit(); // next show re-fits → re-rounds
     return;
   }
+  // The Rust poller re-emits "pending" every tick. Rebuilding the card each time
+  // would wipe in-progress radio/checkbox selections, so skip when the pending
+  // set is unchanged (same as mobile.js's lastPermKey guard).
+  const key = list.map((p) => p.id).join(",");
+  if (key === lastKey && !el.card.hidden) return;
+  lastKey = key;
   const top = list[0];
   current = top.id;
 
@@ -61,6 +69,14 @@ function render(pending) {
   el.card.classList.toggle("danger", danger);
   el.eyebrow.textContent = danger ? `⚠ DESTRUCTIVE · ${tool}` : `${tool} · clawleash`;
   el.main.textContent = detail;
+
+  // ExitPlanMode: show the plan text; Approve = allow, Keep planning = deny.
+  const isPlan = tool === "ExitPlanMode";
+  if (isPlan) {
+    el.eyebrow.textContent = "PLAN REVIEW · clawleash";
+    el.main.textContent = top.plan || detail;
+  }
+  el.main.classList.toggle("plan", isPlan);
 
   if (list.length > 1) {
     el.more.textContent = `+${list.length - 1}`;
@@ -150,8 +166,8 @@ function render(pending) {
   // Question mode: Allow becomes a gated "Submit"; Deny becomes "Go to Terminal".
   const canSubmit = isQuestion && top.answerable;
   el.allow.hidden = isQuestion && !top.answerable; // no submit when there's nothing to answer
-  el.allow.textContent = canSubmit ? "Submit" : "Allow";
-  el.deny.textContent = isQuestion ? "Go to Terminal" : "Deny";
+  el.allow.textContent = canSubmit ? "Submit" : (isPlan ? "Approve" : "Allow");
+  el.deny.textContent = isQuestion ? "Go to Terminal" : (isPlan ? "Keep planning" : "Deny");
 
   if (!busy) {
     el.deny.disabled = false;

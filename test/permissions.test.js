@@ -178,6 +178,24 @@ test("registry: multi-question requires every question answered, multi-select jo
   assert.equal(decision.updatedInput.answers["Which areas?"], "API, UI");
 });
 
+test("ExitPlanMode: summarize + list expose the plan; approve resolves allow", async () => {
+  const planInput = { plan: "1. Do X\n2. Do Y\n3. Ship it" };
+  assert.equal(summarize("ExitPlanMode", planInput), "1. Do X 2. Do Y 3. Ship it");
+  assert.equal(summarize("ExitPlanMode", {}), "Review plan");
+
+  const reg = createRegistry();
+  let id = null;
+  const p = reg.request({ tool: "ExitPlanMode", input: planInput, sessionId: "s" }, 5000, (info) => { id = info.id; });
+  const item = reg.list()[0];
+  assert.equal(item.tool, "ExitPlanMode");
+  assert.match(item.plan, /Do X/);
+  assert.equal(item.answerable, false); // not an AskUserQuestion form
+
+  assert.equal(reg.resolve(id, "allow"), true); // Approve
+  const decision = await p;
+  assert.equal(decision.decision, "allow");
+});
+
 test("registry: answering a question without options is a no-op", () => {
   const reg = createRegistry();
   let id = null;

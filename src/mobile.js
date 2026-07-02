@@ -68,6 +68,7 @@ header{padding:18px 16px 6px}h1{font-size:18px;margin:0}#sub{font-size:12px;colo
 .pnote{font-size:12px;color:var(--mut);margin:2px 0 10px}
 .pbtns .psubmit{background:var(--ok)}.pbtns .psubmit:disabled{opacity:.4}
 .pbtns .term{background:var(--card);border:1px solid var(--bd);color:var(--mut)}
+.pplan{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:52vh;overflow-y:auto;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;margin:5px 0 11px}
 </style></head><body>
 <header><h1>🦀 clawleash</h1><p id="sub">connecting…</p></header>
 <div id="perms"></div>
@@ -109,6 +110,10 @@ function renderPerms(list){var el=document.getElementById('perms');if(!list||!li
  permData={};
  el.innerHTML=list.map(function(p){
   var head='<div class="ptool">'+esc(p.tool)+(p.project?' · '+esc(p.project):'')+'</div>';
+  // ExitPlanMode: show the plan, Approve (allow) / Keep planning (deny).
+  if(p.tool==='ExitPlanMode'){
+   return '<div class="card perm">'+head+'<div class="pplan">'+esc(p.plan||p.summary)+'</div><div class="pbtns"><button class="allow" data-id="'+esc(p.id)+'" data-d="allow">Approve</button><button class="deny" data-id="'+esc(p.id)+'" data-d="deny">Keep planning</button></div></div>';
+  }
   // AskUserQuestion "choose a direction": a radio/checkbox form (matches clawd-on-desk).
   if(p.questions&&p.questions.length){
    permData[p.id]=p.questions;

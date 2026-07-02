@@ -76,6 +76,7 @@ function summarize(tool, input) {
     const first = qs[0] && typeof qs[0] === "object" ? qs[0] : {};
     return trim(first.question || first.header, 90) || "Choose an option";
   }
+  if (tool === "ExitPlanMode") return trim(ti.plan, 90) || "Review plan";
   if (tool === "Bash") return trim(ti.command, 90) || "Bash command";
   if (tool === "Write" || tool === "Edit" || tool === "MultiEdit" || tool === "NotebookEdit") {
     const f = ti.file_path || ti.notebook_path || "";
@@ -144,6 +145,8 @@ function createRegistry() {
         // AskUserQuestion "choose a direction" prompts: options render as buttons.
         questions,
         answerable: isAnswerable(questions),
+        // ExitPlanMode plan review: the plan text (clamped for display). Approve = allow.
+        plan: p.tool === "ExitPlanMode" ? trim(p.input && p.input.plan, 1500) : undefined,
         createdAt: p.createdAt,
       };
     });

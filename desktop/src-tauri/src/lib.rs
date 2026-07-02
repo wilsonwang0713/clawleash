@@ -339,10 +339,32 @@ fn show_toast(win: &WebviewWindow) {
 // (the frontend measures and calls this).
 #[tauri::command]
 fn fit_toast(window: WebviewWindow, height: f64) {
-    let h = height.clamp(80.0, 460.0);
+    let monitor = window
+        .current_monitor().ok().flatten()
+        .or_else(|| window.primary_monitor().ok().flatten());
+    // Size to the full content height (matches clawd-on-desk's bubble model): the
+    // window is bottom-anchored, so the actions stay pinned at the visible bottom
+    // and only the top overflows off-screen for a pathologically tall card. A
+    // large sanity cap prevents a runaway window; real cards are far smaller.
+    let h = height.clamp(80.0, 4000.0);
     let _ = window.set_size(tauri::LogicalSize::new(340.0, h));
     apply_rounding(&window); // re-round at the new size (else square corners)
-    position_bottom_right(&window);
+    // Position using the size we JUST set — outer_size() is stale right after an
+    // async set_size on macOS, which would anchor a tall card off the bottom edge.
+    if let Some(m) = monitor {
+        let msize = m.size();
+        let mpos = m.position();
+        let scale = m.scale_factor();
+        let win_w = (340.0 * scale) as i32;
+        let win_h = (h * scale) as i32;
+        let margin = (16.0 * scale) as i32;
+        let dock = (96.0 * scale) as i32;
+        let x = mpos.x + msize.width as i32 - win_w - margin;
+        let y = mpos.y + msize.height as i32 - win_h - margin - dock;
+        let _ = window.set_position(PhysicalPosition::new(x, y));
+    } else {
+        position_bottom_right(&window);
+    }
     configure_overlay(&window);
 }
 

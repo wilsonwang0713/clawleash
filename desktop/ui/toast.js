@@ -25,7 +25,10 @@ let busy = false;   // a resolve is in flight
 let lastH = 0;      // last height we asked the window to be
 
 function fit() {
-  const h = Math.ceil(el.card.getBoundingClientRect().height);
+  // scrollHeight = full natural content height even when the card is capped at
+  // 100vh and scrolls (getBoundingClientRect would return the clamped height and
+  // stick the window small). Rust clamps this to the usable screen height.
+  const h = Math.ceil(el.card.scrollHeight);
   if (h > 0 && Math.abs(h - lastH) > 1) {
     lastH = h;
     invoke("fit_toast", { height: h }).catch(() => {});

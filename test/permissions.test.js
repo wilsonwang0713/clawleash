@@ -116,11 +116,26 @@ test("normalizeQuestions: exposes options with indices and clamps counts", () =>
   assert.equal(capped[0].options.length, 5);
 });
 
-test("isAnswerable: only single-select, single-question, with options", () => {
+// Multi-question, multi-select input for the clawd-on-desk-style form.
+const multiInput = {
+  questions: [
+    { header: "Approach", question: "Which approach?", multiSelect: false,
+      options: [{ label: "MVP first" }, { label: "Full build" }] },
+    { header: "Scope", question: "Which areas?", multiSelect: true,
+      options: [{ label: "API" }, { label: "UI" }, { label: "Docs" }] },
+  ],
+};
+
+test("isAnswerable: any elicitation with options (single/multi select, one/many questions)", () => {
   assert.equal(isAnswerable(normalizeQuestions(askInput)), true);
-  assert.equal(isAnswerable(normalizeQuestions({ questions: [{ question: "q", multiSelect: true, options: [{ label: "a" }] }] })), false);
+  // multi-select is now answerable
+  assert.equal(isAnswerable(normalizeQuestions({ questions: [{ question: "q", multiSelect: true, options: [{ label: "a" }] }] })), true);
+  // multiple questions are now answerable
+  assert.equal(isAnswerable(normalizeQuestions(multiInput)), true);
+  // a question with no options is not
   assert.equal(isAnswerable(normalizeQuestions({ questions: [{ question: "q", options: [] }] })), false);
-  assert.equal(isAnswerable(normalizeQuestions({ questions: [askInput.questions[0], askInput.questions[0]] })), false);
+  // if ANY question lacks options, not answerable
+  assert.equal(isAnswerable(normalizeQuestions({ questions: [askInput.questions[0], { question: "q2", options: [] }] })), false);
 });
 
 test("buildAnswerUpdatedInput: folds picked labels into answers by question text", () => {
@@ -129,7 +144,7 @@ test("buildAnswerUpdatedInput: folds picked labels into answers by question text
   assert.deepEqual(updated.questions, askInput.questions); // questions preserved
 });
 
-test("registry: AskUserQuestion lists questions + answerable, resolves via answer index", async () => {
+test("registry: AskUserQuestion lists questions + answerable, resolves via answers map", async () => {
   const reg = createRegistry();
   let id = null;
   const p = reg.request({ tool: "AskUserQuestion", input: askInput, sessionId: "s" }, 5000, (info) => { id = info.id; });
@@ -139,25 +154,35 @@ test("registry: AskUserQuestion lists questions + answerable, resolves via answe
   assert.equal(item.answerable, true);
   assert.equal(item.questions[0].options.length, 2);
 
-  // picking option 1 settles allow + updatedInput carrying the chosen label
-  assert.equal(reg.resolve(id, { answer: 1 }), true);
+  // submitting the answers map settles allow + updatedInput carrying the label
+  assert.equal(reg.resolve(id, { answers: { "Which approach should we take?": "Full build" } }), true);
   const decision = await p;
   assert.equal(decision.decision, "allow");
   assert.equal(decision.updatedInput.answers["Which approach should we take?"], "Full build");
 });
 
-test("registry: answering a non-answerable question is a no-op", () => {
+test("registry: multi-question requires every question answered, multi-select joined", async () => {
   const reg = createRegistry();
   let id = null;
-  reg.request({ tool: "AskUserQuestion", input: { questions: [{ question: "q", multiSelect: true, options: [{ label: "a" }] }] }, sessionId: "s" }, 5000, (info) => { id = info.id; });
-  assert.equal(reg.list()[0].answerable, false);
-  assert.equal(reg.resolve(id, { answer: 0 }), false);
-  assert.equal(reg.size(), 1); // still pending
+  const p = reg.request({ tool: "AskUserQuestion", input: multiInput, sessionId: "s" }, 5000, (info) => { id = info.id; });
+  assert.equal(reg.list()[0].answerable, true);
 
-  // out-of-range answer index on an answerable question is also a no-op
-  const reg2 = createRegistry();
-  let id2 = null;
-  reg2.request({ tool: "AskUserQuestion", input: askInput, sessionId: "s" }, 5000, (info) => { id2 = info.id; });
-  assert.equal(reg2.resolve(id2, { answer: 9 }), false);
-  assert.equal(reg2.size(), 1);
+  // partial answers (only 1 of 2 questions) → no-op, still pending
+  assert.equal(reg.resolve(id, { answers: { "Which approach?": "MVP first" } }), false);
+  assert.equal(reg.size(), 1);
+
+  // all answered (multi-select joined with ", ") → allow
+  assert.equal(reg.resolve(id, { answers: { "Which approach?": "MVP first", "Which areas?": "API, UI" } }), true);
+  const decision = await p;
+  assert.equal(decision.decision, "allow");
+  assert.equal(decision.updatedInput.answers["Which areas?"], "API, UI");
+});
+
+test("registry: answering a question without options is a no-op", () => {
+  const reg = createRegistry();
+  let id = null;
+  reg.request({ tool: "AskUserQuestion", input: { questions: [{ question: "q", options: [] }] }, sessionId: "s" }, 5000, (info) => { id = info.id; });
+  assert.equal(reg.list()[0].answerable, false);
+  assert.equal(reg.resolve(id, { answers: { q: "x" } }), false);
+  assert.equal(reg.size(), 1); // still pending
 });

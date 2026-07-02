@@ -143,10 +143,11 @@ function startDaemon({ getConfig, onLog } = {}) {
     if (p === "/api/permission" && req.method === "POST") {
       const id = url.searchParams.get("id") || "";
       const s = url.searchParams.get("s"); // optional suggestion index
-      const a = url.searchParams.get("a"); // optional AskUserQuestion answer (option index)
+      // AskUserQuestion answers arrive as a JSON body { answers: { <q>: <label(s)> } }.
+      const body = await readBody(req);
       let choice;
-      if (a !== null && a !== "" && Number.isInteger(Number(a))) {
-        choice = { answer: Number(a) };
+      if (body && body.answers && typeof body.answers === "object") {
+        choice = { answers: body.answers };
       } else if (s !== null && s !== "" && Number.isInteger(Number(s))) {
         choice = { suggestion: Number(s) };
       } else {

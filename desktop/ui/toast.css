@@ -125,20 +125,25 @@ html, body {
   font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--allow); margin-top: 2px;
 }
-.q-text { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px; overflow-wrap: anywhere; }
+.q-text { font-size: 13px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.q-hint { font-size: 11px; color: var(--ink-3); margin: 1px 0 5px; }
 .q-opt {
-  width: 100%; text-align: left;
-  border: 0.5px solid color-mix(in srgb, var(--allow) 45%, transparent);
-  background: color-mix(in srgb, var(--allow) 7%, transparent);
-  color: var(--ink);
+  display: flex; align-items: flex-start; gap: 8px;
+  border: 0.5px solid var(--line);
   border-radius: var(--radius);
   padding: 8px 10px;
-  font: inherit; font-size: 12px; font-weight: 600; line-height: 1.3;
-  cursor: pointer; transition: background 110ms ease;
+  cursor: pointer; transition: background 110ms ease, border-color 110ms ease;
   overflow-wrap: anywhere; word-break: break-word;
 }
-.q-opt:hover { background: color-mix(in srgb, var(--allow) 14%, transparent); }
-.q-desc { display: block; font-size: 11px; font-weight: 400; color: var(--ink-3); margin-top: 2px; }
+.q-opt:hover { background: color-mix(in srgb, var(--allow) 7%, transparent); }
+.q-opt:has(input:checked) {
+  border-color: color-mix(in srgb, var(--allow) 55%, transparent);
+  background: color-mix(in srgb, var(--allow) 10%, transparent);
+}
+.q-opt input { margin: 1px 0 0; width: 15px; height: 15px; accent-color: var(--allow); flex: none; }
+.q-copy { display: flex; flex-direction: column; min-width: 0; }
+.q-label { font-size: 12px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+.q-desc { font-size: 11px; font-weight: 400; color: var(--ink-3); margin-top: 2px; }
 .q-note { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
 
 /* ── actions ── */

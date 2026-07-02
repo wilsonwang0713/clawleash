@@ -44,13 +44,12 @@ function normalizeQuestions(input) {
   });
 }
 
-// v1 can answer remotely only the simplest case: one single-select question with
-// options. Everything else (multi-select, multiple questions, no options) falls
-// back to "Go to Terminal" (a plain deny → Claude Code re-prompts in the terminal).
+// Answerable remotely (matches clawd-on-desk): any elicitation with at least one
+// question that has options — single or multi select, one or many questions. The
+// UI renders a radio/checkbox form and only enables Submit once every question is
+// answered. Questions without options fall back to "Go to Terminal".
 function isAnswerable(questions) {
-  return questions.length === 1
-    && !questions[0].multiSelect
-    && questions[0].options.length > 0;
+  return questions.length >= 1 && questions.every((q) => q.options.length > 0);
 }
 
 // Build the tool_input echoed back to Claude Code with the picked answers folded
@@ -150,25 +149,23 @@ function createRegistry() {
     });
   }
 
-  // choice: "allow" | "deny" | { suggestion: <index> } | { answer: <option index> }
+  // choice: "allow" | "deny" | { suggestion: <index> } | { answers: { <question>: <label(s)> } }
   function resolve(id, choice) {
     const p = pending.get(id);
     if (!p) return false;
 
     let settled;
-    if (choice && typeof choice === "object" && Number.isInteger(choice.answer)) {
-      // AskUserQuestion single-select answer: map the picked option index to its
-      // label and echo it back via updatedInput so Claude Code proceeds remotely.
+    if (choice && typeof choice === "object" && choice.answers && typeof choice.answers === "object") {
+      // AskUserQuestion answers: { <question text>: "<label>" | "<label1>, <label2>" }.
+      // Fold them into updatedInput so Claude Code proceeds remotely without the
+      // terminal. Requires every question answered (mirrors clawd-on-desk's
+      // submit-when-complete gate).
       const questions = normalizeQuestions(p.input);
       if (!isAnswerable(questions)) return false;
-      const opt = questions[0].options[choice.answer];
-      if (!opt) return false;
-      const qText = (Array.isArray(p.input.questions) ? p.input.questions[0] : {}).question;
-      const answers = qText ? { [qText]: opt.label } : {};
-      settled = {
-        decision: "allow",
-        updatedInput: buildAnswerUpdatedInput(p.input, answers),
-      };
+      const updatedInput = buildAnswerUpdatedInput(p.input, choice.answers);
+      const answered = updatedInput.answers && Object.keys(updatedInput.answers).length;
+      if (answered !== questions.length) return false;
+      settled = { decision: "allow", updatedInput };
     } else if (choice && typeof choice === "object" && Number.isInteger(choice.suggestion)) {
       const s = (p.suggestions || [])[choice.suggestion];
       if (!s) return false;

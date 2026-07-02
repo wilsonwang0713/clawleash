@@ -23,6 +23,7 @@ const DANGER = /(?:\brm\s+-[rf]+|\bsudo\b|\bmkfs|\bdd\s+if=|chmod\s+-R|chown\s+-
 let current = null; // id currently shown
 let busy = false;   // a resolve is in flight
 let lastH = 0;      // last height we asked the window to be
+let currentQuestions = []; // AskUserQuestion questions for the shown card (answerable only)
 
 function fit() {
   // scrollHeight = full natural content height even when the card is capped at
@@ -68,13 +69,14 @@ function render(pending) {
     el.more.hidden = true;
   }
 
-  // AskUserQuestion "choose a direction": render each question's options as buttons.
+  // AskUserQuestion "choose a direction": a radio/checkbox form (matches clawd-on-desk).
   const questions = Array.isArray(top.questions) ? top.questions : [];
   const isQuestion = questions.length > 0;
+  currentQuestions = isQuestion && top.answerable ? questions : [];
   if (isQuestion) {
     el.eyebrow.textContent = `CHOOSE · ${tool}`;
     el.questions.innerHTML = "";
-    for (const q of questions) {
+    questions.forEach((q, qi) => {
       if (q.header) {
         const h = document.createElement("div");
         h.className = "q-header";
@@ -85,27 +87,41 @@ function render(pending) {
       qt.className = "q-text";
       qt.textContent = q.question;
       el.questions.appendChild(qt);
-      if (top.answerable) {
-        for (const o of q.options || []) {
-          const b = document.createElement("button");
-          b.type = "button";
-          b.className = "q-opt";
-          b.textContent = o.label;
-          if (o.description) {
-            const d = document.createElement("span");
-            d.className = "q-desc";
-            d.textContent = o.description;
-            b.appendChild(d);
-          }
-          b.addEventListener("click", () => answer(o.i));
-          el.questions.appendChild(b);
+      if (!top.answerable) return;
+      const hint = document.createElement("div");
+      hint.className = "q-hint";
+      hint.textContent = q.multiSelect ? "Choose at least one" : "Choose one";
+      el.questions.appendChild(hint);
+      for (const o of q.options || []) {
+        const lab = document.createElement("label");
+        lab.className = "q-opt";
+        const input = document.createElement("input");
+        input.type = q.multiSelect ? "checkbox" : "radio";
+        input.name = `q${qi}`;
+        input.value = o.label;
+        input.dataset.q = String(qi);
+        input.addEventListener("change", updateSubmitState);
+        const copy = document.createElement("span");
+        copy.className = "q-copy";
+        const ol = document.createElement("span");
+        ol.className = "q-label";
+        ol.textContent = o.label;
+        copy.appendChild(ol);
+        if (o.description) {
+          const d = document.createElement("span");
+          d.className = "q-desc";
+          d.textContent = o.description;
+          copy.appendChild(d);
         }
+        lab.appendChild(input);
+        lab.appendChild(copy);
+        el.questions.appendChild(lab);
       }
-    }
+    });
     if (!top.answerable) {
       const note = document.createElement("div");
       note.className = "q-note";
-      note.textContent = "Multi-select or multi-question — answer in the terminal.";
+      note.textContent = "No options — answer in the terminal.";
       el.questions.appendChild(note);
     }
     el.questions.hidden = false;
@@ -131,13 +147,15 @@ function render(pending) {
     el.suggestions.innerHTML = "";
   }
 
-  // For a question, there's no "Allow" — Deny becomes the "Go to Terminal" escape.
-  el.allow.hidden = isQuestion;
+  // Question mode: Allow becomes a gated "Submit"; Deny becomes "Go to Terminal".
+  const canSubmit = isQuestion && top.answerable;
+  el.allow.hidden = isQuestion && !top.answerable; // no submit when there's nothing to answer
+  el.allow.textContent = canSubmit ? "Submit" : "Allow";
   el.deny.textContent = isQuestion ? "Go to Terminal" : "Deny";
 
   if (!busy) {
-    el.allow.disabled = false;
     el.deny.disabled = false;
+    el.allow.disabled = canSubmit ? !questionsComplete() : false;
   }
   el.card.hidden = false;
   // Resize the window to the rendered card height (after layout settles).
@@ -172,18 +190,33 @@ async function pick(index) {
   finally { unlock(); }
 }
 
-// AskUserQuestion: submit the picked option index; the daemon maps it to the
-// option label and echoes it back to Claude Code via updatedInput.
-async function answer(index) {
-  if (!current || busy) return;
+// AskUserQuestion form: complete when every question has a selection.
+function questionsComplete() {
+  return currentQuestions.length > 0
+    && currentQuestions.every((q, qi) => el.questions.querySelector(`input[data-q="${qi}"]:checked`));
+}
+function updateSubmitState() {
+  if (currentQuestions.length && !busy) el.allow.disabled = !questionsComplete();
+}
+function collectAnswers() {
+  const answers = {};
+  currentQuestions.forEach((q, qi) => {
+    const sel = [...el.questions.querySelectorAll(`input[data-q="${qi}"]:checked`)].map((x) => x.value);
+    answers[q.question] = sel.join(", ");
+  });
+  return answers;
+}
+// Submit the collected answers as a map; the daemon folds them into updatedInput.
+async function submit() {
+  if (!current || busy || !questionsComplete()) return;
   const id = current;
   lock();
-  try { await invoke("answer_question", { id, index }); }
+  try { await invoke("submit_answers", { id, answers: collectAnswers() }); }
   catch { /* next event reflects reality */ }
   finally { unlock(); }
 }
 
-el.allow.addEventListener("click", () => decide("allow"));
+el.allow.addEventListener("click", () => { if (currentQuestions.length) submit(); else decide("allow"); });
 el.deny.addEventListener("click", () => decide("deny"));
 
 listen("pending", (e) => render(e.payload));

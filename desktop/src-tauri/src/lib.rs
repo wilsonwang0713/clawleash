@@ -97,18 +97,20 @@ fn pick_suggestion(id: String, index: u32) -> Result<(), String> {
     Ok(())
 }
 
-// Answer an AskUserQuestion by the picked option index. The daemon maps it to the
-// option label and echoes it back to Claude Code via updatedInput.
+// Submit AskUserQuestion answers as a JSON body { answers: { <question>: <label(s)> } }.
+// The daemon folds them into updatedInput so Claude Code proceeds without the terminal.
 #[tauri::command]
-fn answer_question(id: String, index: u32) -> Result<(), String> {
+fn submit_answers(id: String, answers: Value) -> Result<(), String> {
     let (token, port) = token_port();
     let url = format!(
-        "http://127.0.0.1:{}/api/permission?k={}&id={}&a={}",
-        port, token, id, index
+        "http://127.0.0.1:{}/api/permission?k={}&id={}",
+        port, token, id
     );
+    let body = serde_json::json!({ "answers": answers }).to_string();
     ureq::post(&url)
         .timeout(Duration::from_secs(3))
-        .call()
+        .set("Content-Type", "application/json")
+        .send_string(&body)
         .map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -392,7 +394,7 @@ pub fn run() {
             get_pending,
             resolve_permission,
             pick_suggestion,
-            answer_question,
+            submit_answers,
             fit_toast,
             copy_phone_link,
             phone_qr,

@@ -97,6 +97,22 @@ fn pick_suggestion(id: String, index: u32) -> Result<(), String> {
     Ok(())
 }
 
+// Answer an AskUserQuestion by the picked option index. The daemon maps it to the
+// option label and echoes it back to Claude Code via updatedInput.
+#[tauri::command]
+fn answer_question(id: String, index: u32) -> Result<(), String> {
+    let (token, port) = token_port();
+    let url = format!(
+        "http://127.0.0.1:{}/api/permission?k={}&id={}&a={}",
+        port, token, id, index
+    );
+    ureq::post(&url)
+        .timeout(Duration::from_secs(3))
+        .call()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 fn phone_link() -> Result<String, String> {
     let (token, port) = token_port();
     if token.is_empty() {
@@ -354,6 +370,7 @@ pub fn run() {
             get_pending,
             resolve_permission,
             pick_suggestion,
+            answer_question,
             fit_toast,
             copy_phone_link,
             phone_qr,

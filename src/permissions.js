@@ -11,8 +11,72 @@ function trim(s, n) {
   return t.length > n ? `${t.slice(0, n - 1)}…` : t;
 }
 
+// Caps so a large AskUserQuestion prompt can't blow up the phone / toast layout.
+// Mirrors clawd-on-desk's elicitation limits.
+const MAX_QUESTIONS = 4;
+const MAX_OPTIONS = 5;
+const LIMITS = { header: 48, question: 240, label: 80, description: 160 };
+
+// AskUserQuestion carries its choices in tool_input.questions[]. Normalize into a
+// compact, length-clamped shape the UIs render as option buttons. Each option gets
+// a stable index `i` the phone posts back to pick it.
+function normalizeQuestions(input) {
+  const ti = input && typeof input === "object" ? input : {};
+  if (!Array.isArray(ti.questions)) return [];
+  return ti.questions.slice(0, MAX_QUESTIONS).map((q) => {
+    const qq = q && typeof q === "object" ? q : {};
+    const options = (Array.isArray(qq.options) ? qq.options : [])
+      .slice(0, MAX_OPTIONS)
+      .map((o, i) => {
+        const oo = o && typeof o === "object" ? o : {};
+        return {
+          i,
+          label: trim(oo.label, LIMITS.label),
+          description: trim(oo.description, LIMITS.description),
+        };
+      });
+    return {
+      header: trim(qq.header, LIMITS.header),
+      question: trim(qq.question, LIMITS.question),
+      multiSelect: !!qq.multiSelect,
+      options,
+    };
+  });
+}
+
+// v1 can answer remotely only the simplest case: one single-select question with
+// options. Everything else (multi-select, multiple questions, no options) falls
+// back to "Go to Terminal" (a plain deny → Claude Code re-prompts in the terminal).
+function isAnswerable(questions) {
+  return questions.length === 1
+    && !questions[0].multiSelect
+    && questions[0].options.length > 0;
+}
+
+// Build the tool_input echoed back to Claude Code with the picked answers folded
+// in, so the AskUserQuestion tool resolves without a terminal prompt. Mirrors
+// clawd-on-desk buildElicitationUpdatedInput: answers is { <question text>: <label> }.
+function buildAnswerUpdatedInput(toolInput, answers) {
+  const input = toolInput && typeof toolInput === "object" ? toolInput : {};
+  const questions = Array.isArray(input.questions) ? input.questions : [];
+  const normalizedAnswers = {};
+  for (const q of questions) {
+    if (!q || typeof q.question !== "string" || !q.question) continue;
+    const a = answers && Object.prototype.hasOwnProperty.call(answers, q.question)
+      ? answers[q.question]
+      : undefined;
+    if (typeof a === "string" && a.trim()) normalizedAnswers[q.question] = a.trim();
+  }
+  return { ...input, questions, answers: normalizedAnswers };
+}
+
 function summarize(tool, input) {
   const ti = input && typeof input === "object" ? input : {};
+  if (tool === "AskUserQuestion") {
+    const qs = Array.isArray(ti.questions) ? ti.questions : [];
+    const first = qs[0] && typeof qs[0] === "object" ? qs[0] : {};
+    return trim(first.question || first.header, 90) || "Choose an option";
+  }
   if (tool === "Bash") return trim(ti.command, 90) || "Bash command";
   if (tool === "Write" || tool === "Edit" || tool === "MultiEdit" || tool === "NotebookEdit") {
     const f = ti.file_path || ti.notebook_path || "";
@@ -63,30 +127,49 @@ function createRegistry() {
   }
 
   function list() {
-    return [...pending.entries()].map(([id, p]) => ({
-      id,
-      tool: p.tool,
-      summary: summarize(p.tool, p.input),
-      project: p.project || "",
-      sessionId: p.sessionId || "",
-      // Extra one-tap options (e.g. "always allow …"). Index i is what the phone
-      // posts back to pick one.
-      suggestions: (p.suggestions || []).map((s, i) => ({
-        i,
-        label: labelSuggestion(s),
-        behavior: s.behavior === "deny" ? "deny" : "allow",
-      })),
-      createdAt: p.createdAt,
-    }));
+    return [...pending.entries()].map(([id, p]) => {
+      const questions = p.tool === "AskUserQuestion" ? normalizeQuestions(p.input) : [];
+      return {
+        id,
+        tool: p.tool,
+        summary: summarize(p.tool, p.input),
+        project: p.project || "",
+        sessionId: p.sessionId || "",
+        // Extra one-tap options (e.g. "always allow …"). Index i is what the phone
+        // posts back to pick one.
+        suggestions: (p.suggestions || []).map((s, i) => ({
+          i,
+          label: labelSuggestion(s),
+          behavior: s.behavior === "deny" ? "deny" : "allow",
+        })),
+        // AskUserQuestion "choose a direction" prompts: options render as buttons.
+        questions,
+        answerable: isAnswerable(questions),
+        createdAt: p.createdAt,
+      };
+    });
   }
 
-  // choice: "allow" | "deny" | { suggestion: <index> }
+  // choice: "allow" | "deny" | { suggestion: <index> } | { answer: <option index> }
   function resolve(id, choice) {
     const p = pending.get(id);
     if (!p) return false;
 
     let settled;
-    if (choice && typeof choice === "object" && Number.isInteger(choice.suggestion)) {
+    if (choice && typeof choice === "object" && Number.isInteger(choice.answer)) {
+      // AskUserQuestion single-select answer: map the picked option index to its
+      // label and echo it back via updatedInput so Claude Code proceeds remotely.
+      const questions = normalizeQuestions(p.input);
+      if (!isAnswerable(questions)) return false;
+      const opt = questions[0].options[choice.answer];
+      if (!opt) return false;
+      const qText = (Array.isArray(p.input.questions) ? p.input.questions[0] : {}).question;
+      const answers = qText ? { [qText]: opt.label } : {};
+      settled = {
+        decision: "allow",
+        updatedInput: buildAnswerUpdatedInput(p.input, answers),
+      };
+    } else if (choice && typeof choice === "object" && Number.isInteger(choice.suggestion)) {
       const s = (p.suggestions || [])[choice.suggestion];
       if (!s) return false;
       settled = {
@@ -110,4 +193,4 @@ function createRegistry() {
   return { request, list, resolve, size };
 }
 
-module.exports = { createRegistry, summarize, labelSuggestion };
+module.exports = { createRegistry, summarize, labelSuggestion, normalizeQuestions, isAnswerable, buildAnswerUpdatedInput };

@@ -55,6 +55,15 @@ header{padding:18px 16px 6px}h1{font-size:18px;margin:0}#sub{font-size:12px;colo
 .psug{display:flex;flex-direction:column;gap:6px;margin-bottom:9px}
 .psug button{border:1px solid var(--acc);background:transparent;color:var(--acc);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;text-align:left;width:100%}
 .psug button:active{opacity:.6}
+.pqblock{margin-bottom:12px}.pqblock:last-of-type{margin-bottom:9px}
+.pqh{font-size:11px;color:var(--acc);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.pq{font-size:15px;margin:0 0 10px;word-break:break-word}
+.popts{display:flex;flex-direction:column;gap:8px}
+.popts .opt{display:block;width:100%;text-align:left;border:1px solid var(--acc);background:transparent;color:var(--fg);border-radius:10px;padding:12px;font-size:15px;font-weight:600}
+.popts .opt:active{opacity:.6}
+.odesc{display:block;font-size:12px;font-weight:400;color:var(--mut);margin-top:3px}
+.pnote{font-size:12px;color:var(--mut);margin:2px 0 10px}
+.pbtns .term{background:var(--card);border:1px solid var(--bd);color:var(--mut)}
 </style></head><body>
 <header><h1>🦀 clawleash</h1><p id="sub">connecting…</p></header>
 <div id="perms"></div>
@@ -66,13 +75,25 @@ var K=${JSON.stringify(token || "")};
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML}
 function post(id,qs){fetch('/api/permission?k='+encodeURIComponent(K)+'&id='+encodeURIComponent(id)+'&'+qs,{method:'POST'}).then(function(){tick()}).catch(function(){});}
 document.getElementById('perms').addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button[data-id]');if(!b)return;b.disabled=true;
- var s=b.getAttribute('data-s');
- if(s!==null){post(b.getAttribute('data-id'),'s='+encodeURIComponent(s));}
- else{post(b.getAttribute('data-id'),'decision='+b.getAttribute('data-d'));}});
+ var id=b.getAttribute('data-id');var a=b.getAttribute('data-a');var s=b.getAttribute('data-s');
+ if(a!==null){post(id,'a='+encodeURIComponent(a));}
+ else if(s!==null){post(id,'s='+encodeURIComponent(s));}
+ else{post(id,'decision='+b.getAttribute('data-d'));}});
 function renderPerms(list){var el=document.getElementById('perms');if(!list||!list.length){el.innerHTML='';return}
  el.innerHTML=list.map(function(p){
+  var head='<div class="ptool">'+esc(p.tool)+(p.project?' · '+esc(p.project):'')+'</div>';
+  // AskUserQuestion "choose a direction": render each question's options as buttons.
+  if(p.questions&&p.questions.length){
+   var qs=p.questions.map(function(q){
+    var opts='';
+    if(p.answerable){opts=(q.options||[]).map(function(o){return '<button class="opt" data-id="'+esc(p.id)+'" data-a="'+o.i+'">'+esc(o.label)+(o.description?'<span class="odesc">'+esc(o.description)+'</span>':'')+'</button>';}).join('');}
+    return '<div class="pqblock">'+(q.header?'<div class="pqh">'+esc(q.header)+'</div>':'')+'<div class="pq">'+esc(q.question)+'</div>'+(opts?'<div class="popts">'+opts+'</div>':'')+'</div>';
+   }).join('');
+   var note=p.answerable?'':'<div class="pnote">Multi-select or multi-question — answer this one in the terminal.</div>';
+   return '<div class="card perm">'+head+qs+note+'<div class="pbtns"><button class="term" data-id="'+esc(p.id)+'" data-d="deny">Go to Terminal</button></div></div>';
+  }
   var sug=(p.suggestions||[]).map(function(s){return '<button data-id="'+esc(p.id)+'" data-s="'+s.i+'">'+esc(s.label)+'</button>';}).join('');
-  return '<div class="card perm"><div class="ptool">'+esc(p.tool)+(p.project?' · '+esc(p.project):'')+'</div><div class="psum">'+esc(p.summary)+'</div>'+(sug?'<div class="psug">'+sug+'</div>':'')+'<div class="pbtns"><button class="allow" data-id="'+esc(p.id)+'" data-d="allow">Allow</button><button class="deny" data-id="'+esc(p.id)+'" data-d="deny">Deny</button></div></div>';}).join('');}
+  return '<div class="card perm">'+head+'<div class="psum">'+esc(p.summary)+'</div>'+(sug?'<div class="psug">'+sug+'</div>':'')+'<div class="pbtns"><button class="allow" data-id="'+esc(p.id)+'" data-d="allow">Allow</button><button class="deny" data-id="'+esc(p.id)+'" data-d="deny">Deny</button></div></div>';}).join('');}
 function renderSessions(list){var el=document.getElementById('sessions');if(!list||!list.length){el.innerHTML='<div class="none">no live sessions</div>';return}
  el.innerHTML=list.map(function(s){var st=s.state||'idle';var sub=(s.agents&&s.agents.length)?s.agents.join(', '):st;
   return '<div class="bub"><div class="crab">🦀</div><div class="say"><div class="ttl">'+esc(s.project||'session')+'<span class="st s-'+esc(st)+'">'+esc(st)+'</span></div><div class="subl">'+esc(sub)+'</div></div></div>';}).join('');}

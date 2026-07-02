@@ -11,6 +11,7 @@ const el = {
   eyebrow: document.getElementById("eyebrow"),
   main: document.getElementById("main"),
   more: document.getElementById("more"),
+  questions: document.getElementById("questions"),
   suggestions: document.getElementById("suggestions"),
   allow: document.getElementById("allow"),
   deny: document.getElementById("deny"),
@@ -64,8 +65,54 @@ function render(pending) {
     el.more.hidden = true;
   }
 
-  // One-tap suggestions ("always allow …").
-  const sug = Array.isArray(top.suggestions) ? top.suggestions : [];
+  // AskUserQuestion "choose a direction": render each question's options as buttons.
+  const questions = Array.isArray(top.questions) ? top.questions : [];
+  const isQuestion = questions.length > 0;
+  if (isQuestion) {
+    el.eyebrow.textContent = `CHOOSE · ${tool}`;
+    el.questions.innerHTML = "";
+    for (const q of questions) {
+      if (q.header) {
+        const h = document.createElement("div");
+        h.className = "q-header";
+        h.textContent = q.header;
+        el.questions.appendChild(h);
+      }
+      const qt = document.createElement("div");
+      qt.className = "q-text";
+      qt.textContent = q.question;
+      el.questions.appendChild(qt);
+      if (top.answerable) {
+        for (const o of q.options || []) {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "q-opt";
+          b.textContent = o.label;
+          if (o.description) {
+            const d = document.createElement("span");
+            d.className = "q-desc";
+            d.textContent = o.description;
+            b.appendChild(d);
+          }
+          b.addEventListener("click", () => answer(o.i));
+          el.questions.appendChild(b);
+        }
+      }
+    }
+    if (!top.answerable) {
+      const note = document.createElement("div");
+      note.className = "q-note";
+      note.textContent = "Multi-select or multi-question — answer in the terminal.";
+      el.questions.appendChild(note);
+    }
+    el.questions.hidden = false;
+  } else {
+    el.questions.hidden = true;
+    el.questions.innerHTML = "";
+  }
+
+  // One-tap suggestions ("always allow …"). Not shown for AskUserQuestion.
+  const sug = !isQuestion && Array.isArray(top.suggestions) ? top.suggestions : [];
   if (sug.length) {
     el.suggestions.innerHTML = "";
     for (const s of sug) {
@@ -80,6 +127,10 @@ function render(pending) {
     el.suggestions.hidden = true;
     el.suggestions.innerHTML = "";
   }
+
+  // For a question, there's no "Allow" — Deny becomes the "Go to Terminal" escape.
+  el.allow.hidden = isQuestion;
+  el.deny.textContent = isQuestion ? "Go to Terminal" : "Deny";
 
   if (!busy) {
     el.allow.disabled = false;
@@ -114,6 +165,17 @@ async function pick(index) {
   const id = current;
   lock();
   try { await invoke("pick_suggestion", { id, index }); }
+  catch { /* next event reflects reality */ }
+  finally { unlock(); }
+}
+
+// AskUserQuestion: submit the picked option index; the daemon maps it to the
+// option label and echoes it back to Claude Code via updatedInput.
+async function answer(index) {
+  if (!current || busy) return;
+  const id = current;
+  lock();
+  try { await invoke("answer_question", { id, index }); }
   catch { /* next event reflects reality */ }
   finally { unlock(); }
 }

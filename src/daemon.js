@@ -95,6 +95,9 @@ function startDaemon({ getConfig, onLog } = {}) {
             behavior: decision.decision === "allow" ? "allow" : "deny",
             ...(decision.message ? { message: decision.message } : {}),
             ...(decision.updatedPermissions ? { updatedPermissions: decision.updatedPermissions } : {}),
+            // AskUserQuestion answer: echo the picked option back so CC proceeds
+            // without a terminal prompt.
+            ...(decision.updatedInput ? { updatedInput: decision.updatedInput } : {}),
           },
         },
       }));
@@ -140,8 +143,11 @@ function startDaemon({ getConfig, onLog } = {}) {
     if (p === "/api/permission" && req.method === "POST") {
       const id = url.searchParams.get("id") || "";
       const s = url.searchParams.get("s"); // optional suggestion index
+      const a = url.searchParams.get("a"); // optional AskUserQuestion answer (option index)
       let choice;
-      if (s !== null && s !== "" && Number.isInteger(Number(s))) {
+      if (a !== null && a !== "" && Number.isInteger(Number(a))) {
+        choice = { answer: Number(a) };
+      } else if (s !== null && s !== "" && Number.isInteger(Number(s))) {
         choice = { suggestion: Number(s) };
       } else {
         choice = url.searchParams.get("decision") === "allow" ? "allow" : "deny";

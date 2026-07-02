@@ -7,11 +7,23 @@
 #   ./fake-permission.sh Bash "npm publish"    # custom Bash command
 #   ./fake-permission.sh Write src/app.ts      # a Write request
 #   ./fake-permission.sh Bash "npm test" sug   # include permission_suggestions
+#   ./fake-permission.sh ask                   # AskUserQuestion: renders option buttons
 set -euo pipefail
 PORT="${CLAWLEASH_PORT:-4271}"
 TOOL="${1:-Bash}"
 ARG="${2:-rm -rf build/}"
 SUG="${3:-}"
+
+# AskUserQuestion: a single-select "choose a direction" prompt so you can see the
+# option buttons render (and tap one to answer remotely).
+if [ "$TOOL" = "ask" ] || [ "$TOOL" = "AskUserQuestion" ]; then
+  echo "→ injecting AskUserQuestion (tap an option on the toast or phone)…"
+  RESP="$(curl -s -X POST "http://127.0.0.1:$PORT/hook/permission" \
+    -H 'Content-Type: application/json' \
+    -d '{"tool_name":"AskUserQuestion","session_id":"faketest","tool_input":{"questions":[{"header":"Approach","question":"Which approach should we take?","multiSelect":false,"options":[{"label":"MVP first","description":"Ship the smallest thing."},{"label":"Full build","description":"Do it all up front."},{"label":"Prototype","description":"Validate feasibility first."}]}]}}' || true)"
+  if [ -z "$RESP" ]; then echo "← no decision (timed out, or approvals are off)"; else echo "← daemon replied: $RESP"; fi
+  exit 0
+fi
 
 if [ "$TOOL" = "Bash" ]; then
   INPUT="{\"command\":\"$ARG\"}"
